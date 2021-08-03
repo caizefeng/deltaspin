@@ -1,0 +1,13 @@
+# .gitignore
+
+/bin/*
+/build/*
+!.gitkeep
+
+/makefile.include
+
+/test/*/*
+!INCAR
+!POSCAR
+!POTCAR
+!KPOINTS

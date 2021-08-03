@@ -1,0 +1,70 @@
+SYSTEM = Fe
+#GGA = PE
+#GGA_COMPAT    = .FALSE
+#Electronic minimization
+PREC = Normal
+ENCUT = 600
+EDIFF = 1E-6 #OPT
+#EDIFFG = -1E-3 #OPT
+LORBIT  = 11
+LREAL = .FALSE.
+ISYM = -1
+ISTART  = 0
+NPAR  = 4
+#ICHARG =  1
+VOSKOWN = 1
+RWIGS = 1.164
+LWAVE = .FALSE.
+LCHARG = .FALSE.
+#IBRION = 2 #OPT
+#ISIF = 3 #OPT
+NELMIN = 10
+NELM = 500
+#NSW = 500 #OPT
+#POTIM = 0.2  #OPT
+
+#DOS
+ISMEAR = 1
+SIGMA = 0.2
+#NEDOS = 3000 #DOS
+
+#Magnetism
+ISPIN = 2 #MAG
+LNONCOLLINEAR = .TRUE.
+#LSORBIT  = .TRUE. #NCL
+
+#SASC
+I_CONSTRAINED_M = 2 #CON
+MAGMOM   = 0.7194 -0.0231 1.3714 -1.1560 -0.0352 1.0305 
+M_CONSTR = 0.7194 -0.0231 1.3714 -1.1560 -0.0352 1.0305 
+SCTYPE = 3                     # Type of SASC calculation   0: noSASC  1: SASC(L)  2: SASC(Q)  3: SASC(QL)
+
+#SASC(L)
+LAMBDA   = 0 0 0 0 0 0         # Initial Lagragian coefficients in SASC(L)
+CONSTRL  = 1 1 1 1 1 1         # Whether the component is constrained or not   0: not constrained  1: constrained
+NSC = 500                      # Maximum number of steps in inner optimization
+SCDIFF = 1E-8                  # Convergence criterion of iteration (RMS)
+INISC = 1e-6                   # Initial trial step size
+SCCUT = 3                      # Restriction of step size
+NELMSCI = 1                    # Number of electronic steps BEFORE SASC(L)
+NELMSCT = 0                    # Number of INTERMEDIATE normal electronic steps
+IALGOSC = 1                    # Inner optimization algorithm   1: CG(F-R) 2: CG(P-R) 3: CG(H-S) 4: CG(D-Y)
+IALGOSC_DIAG = 1               # Inner diagonalization algorithm   1: sub-space rotation  2: Blocked-Davidson  3: sub-space rotation with B-D in the last step
+LDESC = .TRUE.                 # Debug mode   TRUE: on  FALSE: off
+
+#SASC(Q)
+LAMBDA_Q   = 10 10 10 10 10 10 # Initial Lagragian coefficients in SASC(Q)
+CONSTRL_Q  = 1 1 1 1 1 1       # Whether the component is constrained or not   0: not constrained  1: constrained
+NSC_Q = 500                    # Maximum number of steps in SASC(Q) iteration
+SCDIFF_Q = 3E-4                # Convergence criterion of iteration (+Inf-Norm)
+INISC_Q = 0.1                  # Initial trial step size
+LDESC_Q = .TRUE.               # Debug mode   TRUE: on  FALSE: off
+
+#Orbital mom.
+#LORBMOM = T
+
+#Mixer
+AMIX      = 0.2
+BMIX      = 0.0001
+AMIX_MAG  = 0.8
+BMIX_MAG  = 0.0001
