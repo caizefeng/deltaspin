@@ -5,6 +5,8 @@ echo "RMS:"
 grep "RMS" OSZICAR | tail -1 | awk '{print $3}'
 echo "Energy:"
 echo "$E0 $Ep" | awk '{printf"%.8f\n", ($1-$2)}'
+echo "Cartesian Coordinates:"
+grep "position of ions in cartesian coordinates" OUTCAR -A $N | tail -$N | awk '{print $1, $2, $3}' | awk '{b[NR]=$0; }END{for(i=1;i<=NR;i++) if(i==NR){printf b[i] "\n"}else{printf "%s ",b[i]}}'
 echo "Magnetization:"
 grep 'MW_current' OSZICAR -A $N | tail -$N | awk '{print $2, $3, $4}' | awk '{b[NR]=$0; }END{for(i=1;i<=NR;i++) if(i==NR){printf b[i] "\n"}else{printf "%s ",b[i]}}'
 echo "Magnetization Difference from Target:"

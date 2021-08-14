@@ -6,8 +6,12 @@
 
 /makefile.include
 
-/test/*/*
-!INCAR
-!POSCAR
-!POTCAR
-!KPOINTS
+/test/
+!/test/Fe/INCAR
+!/test/Fe/POSCAR
+!/test/Fe/POTCAR
+!/test/Fe/KPOINTS
+!/test/NiO/INCAR
+!/test/NiO/POSCAR
+!/test/NiO/POTCAR
+!/test/NiO/KPOINTS

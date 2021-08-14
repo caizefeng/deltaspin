@@ -41,9 +41,13 @@ MODULE Constrained_M_modular
     INTEGER, SAVE :: ALGO_SC, ALGO_SC_DIAG
     INTEGER, SAVE :: NELM_SC_INITIAL, NELM_SC_INTER
     INTEGER, SAVE :: CONSTR_NUM_STEP
+    INTEGER, SAVE :: SCDECOUPLE
     REAL(q), SAVE :: CONSTR_EPSILON
     REAL(q), SAVE :: INI_SC_ALPHA
     REAL(q), SAVE :: CONSTR_RESTRICT
+    REAL(q), SAVE :: DECAY_EPSILON
+    REAL(q), SAVE :: LBOUND_EPSILON
+    REAL(q), SAVE :: CONV_BOUND
     LOGICAL, SAVE :: DEBUG_SC
     LOGICAL, SAVE :: TRIAL_UPDATE_RESTRICT
 
@@ -55,6 +59,7 @@ MODULE Constrained_M_modular
     INTEGER, SAVE :: CONSTR_NUM_STEP_Q
     REAL(q), SAVE :: CONSTR_EPSILON_Q
     REAL(q), SAVE :: INI_SC_ALPHA_Q
+    REAL(q), SAVE :: EDIFF_Q
     LOGICAL, SAVE :: DEBUG_SC_Q
 CONTAINS
 !=======================================================================
@@ -286,6 +291,36 @@ CONTAINS
                     END IF
                 END IF
 
+                DECAY_EPSILON = -1
+                CALL RDATAB(LOPEN, INCAR, IU5, 'SCDECAY', '=', '#', ';', 'F', &
+               &   IDUM, DECAY_EPSILON, CDUM, LDUM, CHARAC, N, 1, IERR)
+                IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                    IF (IU0 >= 0) THEN
+                        WRITE (IU0, *) 'Error reading item ''SCDECAY'' from file INCAR.'
+                        WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                    END IF
+                END IF
+
+                LBOUND_EPSILON = 2E-7
+                CALL RDATAB(LOPEN, INCAR, IU5, 'SCDIFFB', '=', '#', ';', 'F', &
+               &   IDUM, LBOUND_EPSILON, CDUM, LDUM, CHARAC, N, 1, IERR)
+                IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                    IF (IU0 >= 0) THEN
+                        WRITE (IU0, *) 'Error reading item ''SCDIFFB'' from file INCAR.'
+                        WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                    END IF
+                END IF
+
+                CONV_BOUND = -1
+                CALL RDATAB(LOPEN, INCAR, IU5, 'SCCONVB', '=', '#', ';', 'F', &
+               &   IDUM, CONV_BOUND, CDUM, LDUM, CHARAC, N, 1, IERR)
+                IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                    IF (IU0 >= 0) THEN
+                        WRITE (IU0, *) 'Error reading item ''SCCONVB'' from file INCAR.'
+                        WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                    END IF
+                END IF
+
                 INI_SC_ALPHA = 0.1
                 CALL RDATAB(LOPEN, INCAR, IU5, 'INISC', '=', '#', ';', 'F', &
                &   IDUM, INI_SC_ALPHA, CDUM, LDUM, CHARAC, N, 1, IERR)
@@ -324,6 +359,16 @@ CONTAINS
                     IF (IU0 >= 0) &
                         WRITE (IU0, *) 'Error reading item ''LDESC'' from file INCAR.'
                     WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+
+                SCDECOUPLE = 0
+                CALL RDATAB(LOPEN, INCAR, IU5, 'IDECOSC', '=', '#', ';', 'I', &
+               &   SCDECOUPLE, RDUM, CDUM, LDUM, CHARAC, N, 1, IERR)
+                IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                    IF (IU0 >= 0) THEN
+                        WRITE (IU0, *) 'Error reading item ''IDECOSC'' from file INCAR.'
+                        WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                    END IF
                 END IF
 
             END IF
@@ -388,6 +433,16 @@ CONTAINS
                 IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
                     IF (IU0 >= 0) THEN
                         WRITE (IU0, *) 'Error reading item ''INISC_Q'' from file INCAR.'
+                        WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                    END IF
+                END IF
+
+                EDIFF_Q = -1.0
+                CALL RDATAB(LOPEN, INCAR, IU5, 'EDIFF_Q', '=', '#', ';', 'F', &
+               &   IDUM, EDIFF_Q, CDUM, LDUM, CHARAC, N, 1, IERR)
+                IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                    IF (IU0 >= 0) THEN
+                        WRITE (IU0, *) 'Error reading item ''EDIFF_Q'' from file INCAR.'
                         WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
                     END IF
                 END IF
@@ -977,9 +1032,9 @@ CONTAINS
             ion_types: DO NT = 1, NTYP
             ions: DO NI = NIS, NITYP(NT) + NIS - 1
 
-                IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
-                    ABS(M_CONSTR(2, NI)) < TINY .AND. &
-                    ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
+                ! IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(2, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
 
                 MW_IN_M_CONSTR = MW(1, NI)*M_CONSTR(1, NI) + &
                                  MW(2, NI)*M_CONSTR(2, NI) + &
@@ -1086,9 +1141,9 @@ CONTAINS
 
         ions: DO NI = 1, NIONS
 
-            IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
-                ABS(M_CONSTR(2, NI)) < TINY .AND. &
-                ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
+            ! IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
+            !     ABS(M_CONSTR(2, NI)) < TINY .AND. &
+            !     ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
 
             MW_IN_M_CONSTR = MW(1, NI)*M_CONSTR(1, NI) + &
                              MW(2, NI)*M_CONSTR(2, NI) + &
@@ -1165,9 +1220,9 @@ CONTAINS
             ! WRITE(IU,'(/A7,E12.5,A11,E10.3)') ' E_p = ',E_PENALTY,'  lambda = ',LAMBDA
             ! WRITE(IU,*) 'ion             lambda*MW_perp'
             DO NI = 1, NIONS
-                IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
-                    ABS(M_CONSTR(2, NI)) < TINY .AND. &
-                    ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
+                ! IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(2, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
 
                 MW_IN_M_CONSTR = MW(1, NI)*M_CONSTR(1, NI) + &
                                  MW(2, NI)*M_CONSTR(2, NI) + &
@@ -1183,12 +1238,11 @@ CONTAINS
                     IF (SCTYPE_CURRENT == 0) THEN
                         DO I = 1, 3
                             MW_(I, NI) = MW(I, NI) - M_CONSTR(I, NI)
-                            ! FT(I, NI) = L_CONSTR(I, NI)
                         END DO
                     ELSE
                         DO I = 1, 3
                             MW_(I, NI) = MW(I, NI) - M_CONSTR(I, NI)
-                            FT(I, NI) = L_CONSTR(I, NI)
+                            FT(I, NI) = -L_CONSTR(I, NI)
                         END DO
                     END IF
                 END IF
@@ -1198,11 +1252,20 @@ CONTAINS
             END DO
 
             MW_MASK = MW_
-            where (CONSTRL == 0) MW_MASK = 0.0
+            IF (SCTYPE_CURRENT == 1) THEN
+                where (CONSTRL == 0) MW_MASK = 0.0
+            ELSE IF (SCTYPE_CURRENT == 2) THEN
+                where (CONSTRL_Q == 0) MW_MASK = 0.0
+            END IF
+            
             WRITE (IU, '(/A7,E12.5,A11)') ' E_p = ', E_PENALTY
             WRITE (IU, '( A7,E12.5)') '<lVp>= ', E_EXPECT
             WRITE (IU, '( A7,E12.5)') ' DBL = ', E_CONSTRAINT()
-            WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/count(CONSTRL == 1))
+            IF (SCTYPE_CURRENT == 1) THEN
+                WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/count(CONSTRL == 1))
+            ELSE IF (SCTYPE_CURRENT == 2) THEN
+                WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/count(CONSTRL_Q == 1))
+            END IF
             WRITE (IU, *) 'ion                     MW_current                            delta_MW'
 
             DO NI = 1, NIONS
@@ -1230,12 +1293,35 @@ CONTAINS
             END IF
 
         ELSE
-            WRITE (IU, '(/A7,E12.5,A11,E10.3)') ' E_p = ', E_PENALTY, '  lambda = ', LAMBDA
-            WRITE (IU, '(/A7,E12.5,A11)') ' E_p = ', E_PENALTY
-            WRITE (IU, '( A7,E12.5)') ' DBL = ', E_CONSTRAINT()
-            WRITE (IU, *) 'ion        MW_int                 M_int'
             DO NI = 1, NIONS
-                WRITE (IU, '(I3,3F12.9,3F12.9)') NI, MW(1:3, NI), MW_(1:3, NI)
+                ! IF (ABS(M_CONSTR(1, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(2, NI)) < TINY .AND. &
+                !     ABS(M_CONSTR(3, NI)) < TINY) CYCLE ! we do not constrain this ion
+
+                MW_IN_M_CONSTR = MW(1, NI)*M_CONSTR(1, NI) + &
+                                 MW(2, NI)*M_CONSTR(2, NI) + &
+                                 MW(3, NI)*M_CONSTR(3, NI)
+
+                IF (I_CONSTRAINED_M == 1 .OR. I_CONSTRAINED_M == 3) THEN
+                    DO I = 1, 3
+                        MW_(I, NI) = MW(I, NI) - M_CONSTR(I, NI)*MW_IN_M_CONSTR
+                    END DO
+                END IF
+
+                IF (I_CONSTRAINED_M == 2) THEN
+                    DO I = 1, 3
+                        MW_(I, NI) = MW(I, NI) - M_CONSTR(I, NI)
+                    END DO
+                END IF
+            END DO
+            ! WRITE (IU, '(/A7,E12.5,A11,E10.3)') ' E_p = ', E_PENALTY, '  lambda = ', LAMBDA
+            ! WRITE (IU, '(/A7,E12.5,A11)') ' E_p = ', E_PENALTY
+            ! WRITE (IU, '( A7,E12.5)') '<lVp>= ', E_EXPECT
+            ! WRITE (IU, '( A7,E12.5)') ' DBL = ', E_CONSTRAINT()
+            WRITE (IU, *) 'ion                     MW_current                            delta_MW'
+
+            DO NI = 1, NIONS
+                WRITE (IU, '(I3,3F18.9,3F18.9)') NI, MW(1:3, NI), MW_(1:3, NI)
             END DO
         END IF
 
