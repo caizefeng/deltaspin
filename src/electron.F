@@ -4643,8 +4643,10 @@ subroutine lambda_inner_optimization_decouple(HAMILTONIAN, KINEDEN, &
 
         io_begin
         if (IO%IU0 >= 0) write (IO%IU0, *) "restriction of this step = ", restrict_current
-        if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_trial before restrict = ", alpha_trial
-        if (IO%IU0 >= 0) write (IO%IU0, *) "boundary before = ", boundary
+        if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_trial before restrict = "
+        if (IO%IU0 >= 0) write (IO%IU0, *) alpha_trial
+        if (IO%IU0 >= 0) write (IO%IU0, *) "boundary before = "
+        if (IO%IU0 >= 0) write (IO%IU0, *) boundary
         if (IO%IU0 >= 0) write (IO%IU0, *) "trial need restriction: false"
         if (IO%IU0 >= 0) write (IO%IU0, *) "delta delta lambda:"
         if (IO%IU0 >= 0) write (IO%IU0, *) spread(alpha_trial, 1, 3)*search
@@ -4715,8 +4717,10 @@ subroutine lambda_inner_optimization_decouple(HAMILTONIAN, KINEDEN, &
         search_max = maxval(abs(search), dim=1)
         boundary = abs(alpha_opt*search_max)
         io_begin
-        if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_opt before restrict = ", alpha_opt
-        if (IO%IU0 >= 0) write (IO%IU0, *) "boundary before = ", boundary
+        if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_opt before restrict = "
+        if (IO%IU0 >= 0) write (IO%IU0, *) alpha_opt
+        if (IO%IU0 >= 0) write (IO%IU0, *) "boundary before = "
+        if (IO%IU0 >= 0) write (IO%IU0, *) boundary
         io_end
 
         if (CONV_BOUND > 0 .and. maxval(boundary) <= CONV_BOUND) then
@@ -4727,16 +4731,16 @@ subroutine lambda_inner_optimization_decouple(HAMILTONIAN, KINEDEN, &
         end if
 
         if (CONSTR_RESTRICT > 0 .and. maxval(boundary) > restrict_current) then
-            do i = 1, 3
-                if (boundary(i) > restrict_current) then
-                    alpha_opt(i) = sign(1.0, alpha_opt(i))*restrict_current/search_max(i)
-                end if
-            end do
+            where (boundary > restrict_current)
+                alpha_opt = sign(1.0, alpha_opt)*restrict_current/search_max
+            end where
             boundary = abs(alpha_opt*search_max)
             io_begin
             if (IO%IU0 >= 0) write (IO%IU0, *) "restriction needed: true"
-            if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_opt after restrict = ", alpha_opt
-            if (IO%IU0 >= 0) write (IO%IU0, *) "boundary after = ", boundary
+            if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_opt after restrict = "
+            if (IO%IU0 >= 0) write (IO%IU0, *) alpha_opt
+            if (IO%IU0 >= 0) write (IO%IU0, *) "boundary after = "
+            if (IO%IU0 >= 0) write (IO%IU0, *) boundary
             io_end
         else
             io_begin
@@ -4786,10 +4790,6 @@ subroutine lambda_inner_optimization_decouple(HAMILTONIAN, KINEDEN, &
     RHOLM_LAST = RHOLM_LAST_RESERVE
     !RHOLM = RHOLM
     ! TOTEN = TOTEN_RESERVE
-    ! io_begin
-    ! if (IO%IU0 >= 0) write (IO%IU0, *) "(in) current total energy = ", TOTEN
-    ! io_end
-    ! W = W_RESERVE
 
     INFO%NELMDL = NELMDL_RESERVE
     INFO%NELMIN = NELMIN_RESERVE
@@ -5038,9 +5038,6 @@ subroutine lambda_inner_optimization_decouple_more(HAMILTONIAN, KINEDEN, &
     RHOLM_LAST_RESERVE = RHOLM_LAST
     W_RESERVE = W
     ! TOTEN_RESERVE = TOTEN
-    ! io_begin
-    ! if (IO%IU0 >= 0) write (IO%IU0, *) "(in) reserved total energy = ", TOTEN_RESERVE
-    ! io_end
 
     NELM_RESERVE = INFO%NELM
     NELMDL_RESERVE = INFO%NELMDL
@@ -5289,11 +5286,6 @@ subroutine lambda_inner_optimization_decouple_more(HAMILTONIAN, KINEDEN, &
         sum_k2 = (spin - spin_plus)**2
         alpha_opt = sum_k*alpha_trial/sum_k2
         where (CONSTRL == 0) alpha_opt = 0.0
-        ! cos_theta = sum_k/sqrt(sum((target_spin - spin)**2, dim=1)*sum((spin_plus - spin)**2, dim=1))
-        ! where (CONSTRL == 0) cos_theta = 0.0
-        ! io_begin
-        ! if (IO%IU0 >= 0) write (IO%IU0, *) "cosine between target and trial: ", cos_theta
-        ! io_end
 
         ! restrict adapted step
         search_max = abs(search)
@@ -5314,7 +5306,7 @@ subroutine lambda_inner_optimization_decouple_more(HAMILTONIAN, KINEDEN, &
 
         if (CONSTR_RESTRICT > 0 .and. maxval(boundary) > restrict_current) then
             where (boundary > restrict_current)
-                alpha_opt = alpha_opt/abs(alpha_opt)*restrict_current/search_max
+                alpha_opt = sign(1.0, alpha_opt)*restrict_current/search_max
             end where
             boundary = abs(alpha_opt*search_max)
             io_begin
@@ -5372,10 +5364,6 @@ subroutine lambda_inner_optimization_decouple_more(HAMILTONIAN, KINEDEN, &
     RHOLM_LAST = RHOLM_LAST_RESERVE
     !RHOLM = RHOLM
     ! TOTEN = TOTEN_RESERVE
-    ! io_begin
-    ! if (IO%IU0 >= 0) write (IO%IU0, *) "(in) current total energy = ", TOTEN
-    ! io_end
-    ! W = W_RESERVE
 
     INFO%NELMDL = NELMDL_RESERVE
     INFO%NELMIN = NELMIN_RESERVE
