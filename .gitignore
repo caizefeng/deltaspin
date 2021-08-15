@@ -8,12 +8,26 @@
 
 /makefile.include
 
-/test/
-!/test/metal/Fe/INCAR
-!/test/metal/Fe/POSCAR
-!/test/metal/Fe/POTCAR
-!/test/metal/Fe/KPOINTS
-!/test/insulator/NiO/INCAR
-!/test/insulator/NiO/POSCAR
-!/test/insulator/NiO/POTCAR
-!/test/insulator/NiO/KPOINTS
+CHG
+CHGCAR
+CONTCAR
+DOSCAR
+EIGENVAL
+IBZKPT
+OSZICAR
+OUTCAR
+PCDAT
+REPORT
+vasprun.xml
+WAVECAR
+XDATCAR
+LOCPOT
+AECCAR*
+err
+out
+timing.log
+log-*
+
+/test/*
+!/test/metal
+!/test/insulator
