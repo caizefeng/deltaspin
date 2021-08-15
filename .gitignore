@@ -7,11 +7,11 @@
 /makefile.include
 
 /test/
-!/test/Fe/INCAR
-!/test/Fe/POSCAR
-!/test/Fe/POTCAR
-!/test/Fe/KPOINTS
-!/test/NiO/INCAR
-!/test/NiO/POSCAR
-!/test/NiO/POTCAR
-!/test/NiO/KPOINTS
+!/test/metal/Fe/INCAR
+!/test/metal/Fe/POSCAR
+!/test/metal/Fe/POTCAR
+!/test/metal/Fe/KPOINTS
+!/test/insulator/NiO/INCAR
+!/test/insulator/NiO/POSCAR
+!/test/insulator/NiO/POTCAR
+!/test/insulator/NiO/KPOINTS
