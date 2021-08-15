@@ -1,4 +1,6 @@
 # .gitignore
+*.swp
+*~
 
 /bin/*
 /build/*
