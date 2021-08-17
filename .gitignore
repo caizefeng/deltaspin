@@ -22,6 +22,7 @@ vasprun.xml
 WAVECAR
 XDATCAR
 LOCPOT
+PROCAR
 AECCAR*
 err
 out
