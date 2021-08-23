@@ -509,9 +509,6 @@ SUBROUTINE ELMIN( &
         TOTEN=E%EBANDSTR+E%DENC+E%XCENC+E%TEWEN+E%PSCENC+E%EENTROPY+E%PAWPS+E%PAWAE+INFO%EALLAT+E%EXHF+ECORE()+ Ediel_sol
 !-MM- Added to accomodate constrained moment calculations
         IF (M_CONSTRAINED()) TOTEN = TOTEN + E_CONSTRAINT()
-        ! io_begin
-        ! CALL WRITE_CONSTRAINED_M(17, .TRUE.)
-        ! io_end
 !-MM- end of additions
 !---- write total energy to OSZICAR file and stdout
         DESUM(N) = TOTEN - TOTENL
@@ -1832,37 +1829,37 @@ SUBROUTINE ELMIN_SASC_IN( &
         IF (DIP%LCOR_DIP) CALL WRITE_DIP(IO%IU6)
 
         ! mixing
-        IF (INFO%LMIX .AND. MIX%IMIX == 4) THEN
-            IF (IERRBR /= 0) THEN
-                IF (IO%IU0 >= 0) &
-                    WRITE (IO%IU0, *) 'ERROR: Broyden mixing failed, tried ''simple '// &
-                    'mixing'' now and reset mixing at next step!'
-                IF (IO%IU6 >= 0) &
-                    WRITE (IO%IU6, *) 'ERROR: Broyden mixing failed, tried ''simple '// &
-                    'mixing'' now and reset mixing at next step!'
-            END IF
+!         IF (INFO%LMIX .AND. MIX%IMIX == 4) THEN
+!             IF (IERRBR /= 0) THEN
+!                 IF (IO%IU0 >= 0) &
+!                     WRITE (IO%IU0, *) 'ERROR: Broyden mixing failed, tried ''simple '// &
+!                     'mixing'' now and reset mixing at next step!'
+!                 IF (IO%IU6 >= 0) &
+!                     WRITE (IO%IU6, *) 'ERROR: Broyden mixing failed, tried ''simple '// &
+!                     'mixing'' now and reset mixing at next step!'
+!             END IF
 
-            IF (IO%NWRITE >= 2 .OR. NSTEP == 1) THEN
-                WRITE (IO%IU6, 2441) RMST, RMSC, RMSP, WEIGHT
-                IF (ABS(RMST - RMSC)/RMST > 0.1_q) THEN
-                    WRITE (IO%IU6, *) ' WARNING: grid for Broyden might be to small'
-                END IF
-            END IF
-            IF (IO%IU0 >= 0) WRITE (IO%IU0, 308) RMST
-            WRITE (17, 308) RMST
-308         FORMAT('   ', E10.3)
-            IF (MIX%NEIG > 0) THEN
-                WRITE (IO%IU6, 2442) MIX%AMEAN, MIX%EIGENVAL(1:MIX%NEIG)
-            END IF
-        ELSE IF (INFO%LMIX) THEN
-            IF (IO%IU0 >= 0) &
-                WRITE (IO%IU0, 308) RMST
-            WRITE (17, 308) RMST
-        ELSE
-            IF (IO%IU0 >= 0) &
-                WRITE (IO%IU0, *)
-            WRITE (17, *)
-        END IF
+!             IF (IO%NWRITE >= 2 .OR. NSTEP == 1) THEN
+!                 WRITE (IO%IU6, 2441) RMST, RMSC, RMSP, WEIGHT
+!                 IF (ABS(RMST - RMSC)/RMST > 0.1_q) THEN
+!                     WRITE (IO%IU6, *) ' WARNING: grid for Broyden might be to small'
+!                 END IF
+!             END IF
+!             IF (IO%IU0 >= 0) WRITE (IO%IU0, 308) RMST
+!             WRITE (17, 308) RMST
+! 308         FORMAT('   ', E10.3)
+!             IF (MIX%NEIG > 0) THEN
+!                 WRITE (IO%IU6, 2442) MIX%AMEAN, MIX%EIGENVAL(1:MIX%NEIG)
+!             END IF
+!         ELSE IF (INFO%LMIX) THEN
+!             IF (IO%IU0 >= 0) &
+!                 WRITE (IO%IU0, 308) RMST
+!             WRITE (17, 308) RMST
+!         ELSE
+!             IF (IO%IU0 >= 0) &
+!                 WRITE (IO%IU0, *)
+!             WRITE (17, *)
+!         END IF
         io1: IF (IO%NWRITE >= 2 .OR. (NSTEP == 1)) THEN
             ! energy
             IF (LCORREL()) THEN
@@ -2660,9 +2657,6 @@ SUBROUTINE ELMIN_SASC( &
         & + E%EXHF + ECORE() + Ediel_sol
 !-MM- Added to accomodate constrained moment calculations
         IF (M_CONSTRAINED()) TOTEN = TOTEN + E_CONSTRAINT()
-        ! io_begin
-        ! CALL WRITE_CONSTRAINED_M(17, .TRUE.)
-        ! io_end
 !-MM- end of additions
 !---- write total energy to OSZICAR file and stdout
         DESUM(N) = TOTEN - TOTENL
@@ -2793,6 +2787,21 @@ SUBROUTINE ELMIN_SASC( &
 
         INFO%LMIX = .FALSE.
         MIX%NEIG = 0
+
+        IF (INFO%LABORT) THEN
+            do ISP = 1, WDES%NCDIJ
+                call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+            end do
+            call M_INT(CHTOT, GRIDC, WDES)
+            io_begin
+            write (17, *) "Added one:"
+            CALL WRITE_CONSTRAINED_M(17, .TRUE.)
+            io_end
+            do ISP = 1, WDES%NCDIJ
+                call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+            end do
+        END IF
 
         ! IF (.NOT. INFO%LCHCON .AND. .NOT. (INFO%LABORT .AND. INFO%LCORR) .AND. N >= ABS(INFO%NELMDL)) THEN
         IF (.NOT. INFO%LCHCON .AND. .NOT. (INFO%LABORT .AND. INFO%LCORR)) THEN
@@ -3826,6 +3835,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     real(q), allocatable :: spin_plus(:, :)
     real(q), allocatable :: delta_spin(:, :), delta_spin_old(:, :)
     real(q), allocatable :: search(:, :), search_old(:, :)
+    real(q), allocatable :: target_spin_mask(:, :), spin_mask(:, :), spin_plus_mask(:, :)
 
     real(q) :: epsilon
     real(q) :: alpha_trial, alpha_opt, alpha_plus, beta
@@ -3853,6 +3863,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     allocate (dnu, mold=nu)
     allocate (target_spin, spin, spin_plus, delta_spin, delta_spin_old, mold=nu)
     allocate (search, search_old, mold=nu)
+    allocate (target_spin_mask, spin_mask, spin_plus_mask, mold=nu)
 
     target_spin = M_CONSTR
     dnu = 0
@@ -4127,10 +4138,19 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         io_end
 
 ! adjust alpha but not exact line search
-        sum_k = sum((target_spin - spin)*(spin_plus - spin))
-        sum_k2 = sum((spin - spin_plus)**2)
+        target_spin_mask = target_spin
+        spin_mask = spin
+        spin_plus_mask = spin_plus
+        where (CONSTRL == 0) 
+            target_spin_mask = 0.0
+            spin_mask = 0.0
+            spin_plus_mask = 0.0
+        end where
+
+        sum_k = sum((target_spin_mask - spin_mask)*(spin_plus_mask - spin_mask))
+        sum_k2 = sum((spin_mask - spin_plus_mask)**2)
         alpha_opt = sum_k*alpha_trial/sum_k2
-        cos_theta = sum_k/sqrt(sum((target_spin - spin)**2)*sum((spin_plus - spin)**2))
+        cos_theta = sum_k/sqrt(sum((target_spin_mask - spin_mask)**2)*sum((spin_plus_mask - spin_mask)**2))
         io_begin
         if (IO%IU0 >= 0) write (IO%IU0, *) "cosine between target and trial: ", cos_theta
         io_end

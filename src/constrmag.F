@@ -1235,7 +1235,7 @@ CONTAINS
                 END IF
 
                 IF (I_CONSTRAINED_M == 2) THEN
-                    IF (SCTYPE_CURRENT == 0) THEN
+                    IF (SCTYPE_CURRENT == 0 .OR. SCTYPE_CURRENT == 2) THEN
                         DO I = 1, 3
                             MW_(I, NI) = MW(I, NI) - M_CONSTR(I, NI)
                         END DO
@@ -1247,8 +1247,6 @@ CONTAINS
                     END IF
                 END IF
 
-                !WRITE(IU,'(I3,A2,E16.8,A2,E16.8,A2,E16.8)') &
-                !       NI,'  ',LAMBDA*MW_(1,NI),'  ',LAMBDA*MW_(2,NI),'  ',LAMBDA*MW_(3,NI)
             END DO
 
             MW_MASK = MW_
@@ -1261,7 +1259,9 @@ CONTAINS
             WRITE (IU, '(/A7,E12.5,A11)') ' E_p = ', E_PENALTY
             WRITE (IU, '( A7,E12.5)') '<lVp>= ', E_EXPECT
             WRITE (IU, '( A7,E12.5)') ' DBL = ', E_CONSTRAINT()
-            IF (SCTYPE_CURRENT == 1) THEN
+            IF (SCTYPE_CURRENT == 0) THEN
+                WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/(3*NIONS))
+            ELSE IF (SCTYPE_CURRENT == 1) THEN
                 WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/count(CONSTRL == 1))
             ELSE IF (SCTYPE_CURRENT == 2) THEN
                 WRITE (IU, '( a,es20.12)') ' RMS = ', sqrt(sum(MW_MASK**2)/count(CONSTRL_Q == 1))
