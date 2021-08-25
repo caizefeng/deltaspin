@@ -33,6 +33,7 @@ SIGMA = 0.05
 # The DEFINITION of atomic spins which are constrained (M_CONSTR in INCAR, MW in constrmag.F/OSZICAR):
 # \vec{M}_{I}=
 # \int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(|\mathbf{r}|) d\mathbf{r}
+
 ISYM = -1
 RWIGS = 1.164                 # Better to be determined from Bader analysis
 ISPIN = 2

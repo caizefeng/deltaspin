@@ -146,6 +146,7 @@ vasp: $(OBJS) $(FFT3D) $(INC) main.o
 
 sources:
 	rsync -u $(SRCDIR)/*.F $(SRCDIR)/*.inc .
+	rsync -ru $(SRCDIR)/deltaspin .
 #	-rsync -u $(SRCDIR)/*.f .
 
 libs: $(LIB)

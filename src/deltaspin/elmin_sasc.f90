@@ -1,26 +1,4 @@
-#include "symbol.inc"
-!**********************************************************************
-!
-! subroutine for performing self-adaptive spin constrain in VASP
-!
-!**********************************************************************
-
-#include "deltaspin/elmin_sasc_quadratic.f90"
-#include "deltaspin/elmin_sasc_in.f90"
-#include "deltaspin/elmin_sasc.f90"
-#include "deltaspin/lambda_inner_optimization.f90"
-#include "deltaspin/lambda_inner_optimization_decouple_atom.f90"
-#include "deltaspin/lambda_inner_optimization_decouple_component.f90"
-#include "deltaspin/adjust_alpha_noncollinear.f90"
-
-!**********************************************************************
-! RCS:  $Id: electron.F,v 1.12 2003/06/27 13:22:15 kresse Exp kresse $
-!
-! subroutine for performing electronic minimization in VASP
-!
-!**********************************************************************
-
-SUBROUTINE ELMIN( &
+SUBROUTINE ELMIN_SASC( &
     HAMILTONIAN, KINEDEN, &
     P, WDES, NONLR_S, NONL_S, W, W_F, W_G, LATT_CUR, LATT_INI, &
     T_INFO, DYN, INFO, IO, MIX, KPOINTS, SYMM, GRID, GRID_SOFT, &
@@ -115,6 +93,7 @@ SUBROUTINE ELMIN( &
 
     INTEGER NSTEP, LMDIM, IRDMAX, NEDOS
     REAL(q) :: TOTEN, EFERMI
+    REAL(q) :: TOTEN_RESERVE
 
     COMPLEX(q) CHTOT(GRIDC%MPLWV, WDES%NCDIJ) ! charge-density in real / reciprocal space
     COMPLEX(q) CHTOTL(GRIDC%MPLWV, WDES%NCDIJ)! old charge-density
@@ -176,6 +155,33 @@ SUBROUTINE ELMIN( &
     CALL START_TIMING("LOOP")
     CALL START_TIMING("G")
 
+    L_CONSTR = L_CONSTR_L
+    SCTYPE_CURRENT = 1
+
+    io_begin
+    if (IO%IU0 >= 0) write (IO%IU0, *)  &
+    & "-------------------------------------------------------------------------------"
+    if (IO%IU0 >= 0) write (IO%IU0, *) "SASC(L) (Self-Adaptive Spin Constraint (Linear Lagragian))"
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, es9.3)') "Initial trial step size (alpha_trial) = ", INI_SC_ALPHA
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0)') "Maximum number of steps in SC iteration = ", CONSTR_NUM_STEP
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0)') "Number of INTERMEDIATE normal electronic steps = ", NELM_SC_INTER
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, es9.3)') "Convergence criterion of SC iteration (epsilon) = ", CONSTR_EPSILON
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, es9.3)') "Restriction of SC step size = ", CONSTR_RESTRICT
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0)') "SASC electronic step begins from: ", NELM_SC_INITIAL
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0, a, i0)') "Constrained atoms: ", count(CONSTRL == 1)/3, "/", T_INFO%NIONS
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0)') "Inner optimization algorithm: ", ALGO_SC
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, i0)') "Inner diagonalization algorithm: ", ALGO_SC_DIAG
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, l1)') "Restriction of trial-step update: ", TRIAL_UPDATE_RESTRICT
+    if (IO%IU0 >= 0) write (IO%IU0, '(1x, a, l1)') "Debug mode: ", DEBUG_SC
+    if (IO%IU0 >= 0) write (IO%IU0, *)  &
+    & "--------------------------------------"
+    if (IO%IU0 >= 0) write (IO%IU0, *) "The DEFINITION of atomic spins which are constrained (MW):"
+    if (IO%IU0 >= 0) write (IO%IU0, *) "\vec{M}_{I}="
+    if (IO%IU0 >= 0) write (IO%IU0, *) "\int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(|\mathbf{r}|) d\mathbf{r}"
+    if (IO%IU0 >= 0) write (IO%IU0, *)  &
+    & "-------------------------------------------------------------------------------"
+    io_end
+
     io_begin
     IF (IO%IU0 >= 0) WRITE (IO%IU0, 142)
     WRITE (17, 142)
@@ -187,12 +193,12 @@ SUBROUTINE ELMIN( &
     INFO%LMIX = .FALSE.
 
 130 FORMAT(5X, //, &
-&'----------------------------------------------------', &
-&'----------------------------------------------------'//)
+      &'----------------------------------------------------', &
+      &'----------------------------------------------------'//)
 
 140 FORMAT(5X, //, &
-&'--------------------------------------- Iteration ', &
-&I6, '(', I4, ')  ---------------------------------------'//)
+      &'--------------------------------------- Iteration ', &
+      &I6, '(', I4, ')  ---------------------------------------'//)
     DWRITE0 'electron entered'
 
     CALL DIPOL_RESET()
@@ -276,6 +282,24 @@ SUBROUTINE ELMIN( &
 
         CALL XML_TAG("scstep")
 
+        if (DEBUG_SC) then
+            do ISP = 1, WDES%NCDIJ
+                call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+            end do
+
+            call M_INT(CHTOT, GRIDC, WDES)
+            io_begin
+            if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) beginning-of-SCF-step spin:"
+            if (IO%IU0 >= 0) write (IO%IU0, *) MW
+            if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) target spin:"
+            if (IO%IU0 >= 0) write (IO%IU0, *) M_CONSTR
+            io_end
+
+            do ISP = 1, WDES%NCDIJ
+                call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+            end do
+        end if
 !======================================================================
         io_begin
         WRITE (IO%IU6, 140) NSTEP, N
@@ -301,11 +325,13 @@ SUBROUTINE ELMIN( &
             IF (LCORREL()) THEN
 !        CALL PW_TO_RADIAL(WDES,GRID_SOFT,CHDEN(:,1),LATT_CUR,T_INFO)
                 CALL GET_AVERAGEPOT_PW(GRIDC, LATT_CUR, IRDMAX,  &
-               &   T_INFO, P, WDES%NCDIJ, CVTOT, MAX(INFO%ENAUG, INFO%ENMAX), IO%IU6)
+                &   T_INFO, P, WDES%NCDIJ, CVTOT, MAX(INFO%ENAUG, INFO%ENMAX), IO%IU6)
                 CALL CORREL(RHO_ONE_CENTRE)
             END IF
 #define no_update_potential
 #ifdef no_update_potential
+
+            where (CONSTRL == 0) L_CONSTR = 0.0 ! spin constraint masking
             CALL POTLOK(GRID, GRIDC, GRID_SOFT, WDES%COMM_INTER, WDES, &
                         INFO, P, T_INFO, E, LATT_CUR, &
                         CHTOT, CSTRF, CVTOT, DENCOR, SV, SOFT_TO_C, XCSIF)
@@ -520,7 +546,8 @@ SUBROUTINE ELMIN( &
 ! TOTEN = total free energy of the system
 !=======================================================================
         E%EBANDSTR = BANDSTRUCTURE_ENERGY(WDES, W)
-        TOTEN=E%EBANDSTR+E%DENC+E%XCENC+E%TEWEN+E%PSCENC+E%EENTROPY+E%PAWPS+E%PAWAE+INFO%EALLAT+E%EXHF+ECORE()+ Ediel_sol
+        TOTEN = E%EBANDSTR + E%DENC + E%XCENC + E%TEWEN + E%PSCENC + E%EENTROPY + E%PAWPS + E%PAWAE + INFO%EALLAT &
+        & + E%EXHF + ECORE() + Ediel_sol
 !-MM- Added to accomodate constrained moment calculations
         IF (M_CONSTRAINED()) TOTEN = TOTEN + E_CONSTRAINT()
 !-MM- end of additions
@@ -529,21 +556,21 @@ SUBROUTINE ELMIN( &
         ECONV = DESUM(N)
         io_begin
 305     FORMAT('CG : ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                                                &       I6, '  ', E10.3)
+                                                                                                            &       I6, '  ', E10.3)
 302     FORMAT('NONE ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                                                &       I6, '  ', E10.3)
+                                                                                                            &       I6, '  ', E10.3)
 303     FORMAT('EIG: ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                                                &       I6, '  ', E10.3)
+                                                                                                            &       I6, '  ', E10.3)
 304     FORMAT('DIA: ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                                                &       I6, '  ', E10.3)
+                                                                                                            &       I6, '  ', E10.3)
 1303    FORMAT('RMM: ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                                    &       I6, '  ', E10.3)
+                                                                                               &       I6, '  ', E10.3)
 10303   FORMAT('DAV: ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                        &       I6, '  ', E10.3)
+                                                                 &       I6, '  ', E10.3)
 20303   FORMAT('JDH: ', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                        &       I6, '  ', E10.3)
+                                                                 &       I6, '  ', E10.3)
 30303   FORMAT('DAVI:', I3, '   ', E20.12, '   ', E12.5, '   ', E12.5, &
-                        &       I6, '  ', E10.3)
+                                                                 &       I6, '  ', E10.3)
 
         IF (INFO%LEXACT_DIAG) THEN
             WRITE (17, 304, ADVANCE='NO') N, TOTEN, DESUM(N), DESUM1, ICOUEV, RMS
@@ -585,7 +612,6 @@ SUBROUTINE ELMIN( &
 
         CALL STOP_TIMING("G", IO%IU6, "DOS")
         io_end
-
 !=======================================================================
 !  Test for Break condition
 !=======================================================================
@@ -594,7 +620,8 @@ SUBROUTINE ELMIN( &
         LABORT_WITHOUT_CONV = .FALSE.
 
 !-----eigenvalues and energy must be converged
-        IF (ABS(DESUM(N)) < INFO%EDIFF .AND. ABS(DESUM1) < INFO%EDIFF) INFO%LABORT = .TRUE.
+        ! IF (ABS(DESUM(N)) < INFO%EDIFF .AND. ABS(DESUM1) < INFO%EDIFF) INFO%LABORT = .TRUE.
+        IF (mod(N - NELM_SC_INITIAL, NELM_SC_INTER + 1) == 0 .AND. ABS(DESUM(N)) < INFO%EDIFF) INFO%LABORT = .TRUE.
 !-----charge-density not constant and in last cycle no change of charge
         IF (.NOT. INFO%LMIX .AND. .NOT. INFO%LCHCON .AND. MIX%IMIX /= 0) INFO%LABORT = .FALSE.
 !-----do not stop during the non-selfconsistent startup phase
@@ -654,8 +681,23 @@ SUBROUTINE ELMIN( &
         INFO%LMIX = .FALSE.
         MIX%NEIG = 0
 
-        IF (.NOT. INFO%LCHCON .AND. .NOT. (INFO%LABORT .AND. INFO%LCORR) &
-        &    .AND. N >= ABS(INFO%NELMDL)) THEN
+        IF (INFO%LABORT) THEN
+            do ISP = 1, WDES%NCDIJ
+                call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+            end do
+            call M_INT(CHTOT, GRIDC, WDES)
+            io_begin
+            write (17, *) "Added one:"
+            CALL WRITE_CONSTRAINED_M(17, .TRUE.)
+            io_end
+            do ISP = 1, WDES%NCDIJ
+                call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+            end do
+        END IF
+
+        ! IF (.NOT. INFO%LCHCON .AND. .NOT. (INFO%LABORT .AND. INFO%LCORR) .AND. N >= ABS(INFO%NELMDL)) THEN
+        IF (.NOT. INFO%LCHCON .AND. .NOT. (INFO%LABORT .AND. INFO%LCORR)) THEN
 
             DO ISP = 1, WDES%NCDIJ
                 CALL RC_ADD(CHTOT(1, ISP), 1.0_q, CHTOT(1, ISP), 0.0_q, CHTOTL(1, ISP), GRIDC)
@@ -687,10 +729,113 @@ SUBROUTINE ELMIN( &
 
             CALL STOP_TIMING("G", IO%IU6, "CHARGE")
 
-!-----------------------------------------------------------------------
+! ======================================================================
+! where lambda optimization based on subspace rotation should be executed
+! MIND:
+!  ) must after SET_CHARGE to change the output density
+! ======================================================================
+
+            TOTEN_RESERVE = TOTEN
+
+            do ISP = 1, WDES%NCDIJ
+                call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+            end do
+
+            call M_INT(CHTOT, GRIDC, WDES)
             io_begin
-            CALL WRITE_CONSTRAINED_M(17, .TRUE.)
+            call WRITE_CONSTRAINED_M(17, .TRUE.)
+            if (DEBUG_SC) then
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) after-iterative-diagonalization spin:"
+                if (IO%IU0 >= 0) write (IO%IU0, *) MW
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) target spin:"
+                if (IO%IU0 >= 0) write (IO%IU0, *) M_CONSTR
+            end if
             io_end
+
+            do ISP = 1, WDES%NCDIJ
+                call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+            end do
+
+            if (DEBUG_SC) then
+                io_begin
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(before) current total energy = ", TOTEN
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(before) reserved total energy = ", TOTEN_RESERVE
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(before) last total energy = ", TOTENL
+                io_end
+            end if
+
+            if (N >= NELM_SC_INITIAL .and. mod(N - NELM_SC_INITIAL, NELM_SC_INTER + 1) == 0 .and. INFO%LABORT == .FALSE.) then
+
+                if (SCDECOUPLE == 1) then
+                    call lambda_inner_optimization_decouple_atom( &
+                        HAMILTONIAN, KINEDEN, &
+                        P, WDES, NONLR_S, NONL_S, W, W_F, W_G, LATT_CUR, LATT_INI, &
+                        T_INFO, DYN, INFO, IO, MIX, KPOINTS, SYMM, GRID, GRID_SOFT, &
+                        GRIDC, GRIDB, GRIDUS, C_TO_US, B_TO_C, SOFT_TO_C, E, &
+                        CHTOT, CHTOTL, DENCOR, CVTOT, CSTRF, &
+                        CDIJ, CQIJ, CRHODE, N_MIX_PAW, RHOLM, RHOLM_LAST, &
+                        CHDEN, SV, DOS, DOSI, CHF, CHAM, ECONV, XCSIF, &
+                        NSTEP, LMDIM, IRDMAX, NEDOS, &
+                        TOTEN, EFERMI, LDIMP, LMDIMP, N)
+
+                else if (SCDECOUPLE == 2) then
+                    call lambda_inner_optimization_decouple_component( &
+                        HAMILTONIAN, KINEDEN, &
+                        P, WDES, NONLR_S, NONL_S, W, W_F, W_G, LATT_CUR, LATT_INI, &
+                        T_INFO, DYN, INFO, IO, MIX, KPOINTS, SYMM, GRID, GRID_SOFT, &
+                        GRIDC, GRIDB, GRIDUS, C_TO_US, B_TO_C, SOFT_TO_C, E, &
+                        CHTOT, CHTOTL, DENCOR, CVTOT, CSTRF, &
+                        CDIJ, CQIJ, CRHODE, N_MIX_PAW, RHOLM, RHOLM_LAST, &
+                        CHDEN, SV, DOS, DOSI, CHF, CHAM, ECONV, XCSIF, &
+                        NSTEP, LMDIM, IRDMAX, NEDOS, &
+                        TOTEN, EFERMI, LDIMP, LMDIMP, N)
+
+                else
+                    call lambda_inner_optimization( &
+                        HAMILTONIAN, KINEDEN, &
+                        P, WDES, NONLR_S, NONL_S, W, W_F, W_G, LATT_CUR, LATT_INI, &
+                        T_INFO, DYN, INFO, IO, MIX, KPOINTS, SYMM, GRID, GRID_SOFT, &
+                        GRIDC, GRIDB, GRIDUS, C_TO_US, B_TO_C, SOFT_TO_C, E, &
+                        CHTOT, CHTOTL, DENCOR, CVTOT, CSTRF, &
+                        CDIJ, CQIJ, CRHODE, N_MIX_PAW, RHOLM, RHOLM_LAST, &
+                        CHDEN, SV, DOS, DOSI, CHF, CHAM, ECONV, XCSIF, &
+                        NSTEP, LMDIM, IRDMAX, NEDOS, &
+                        TOTEN, EFERMI, LDIMP, LMDIMP, N)
+                end if
+
+                io_begin
+                if (IO%IU0 >= 0) write (IO%IU0, *) "final optimal lambda: "
+                if (IO%IU0 >= 0) write (IO%IU0, *) L_CONSTR
+                io_end
+            end if
+
+            TOTEN = TOTEN_RESERVE
+
+            if (DEBUG_SC) then
+                io_begin
+                if (IO%IU0 >= 0) write (IO%IU0, *) "current total energy = ", TOTEN
+                io_end
+            end if
+
+            if (DEBUG_SC) then
+                do ISP = 1, WDES%NCDIJ
+                    call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+                end do
+
+                call M_INT(CHTOT, GRIDC, WDES)
+                io_begin
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) after-optimization spin:"
+                if (IO%IU0 >= 0) write (IO%IU0, *) MW
+                if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) target spin:"
+                if (IO%IU0 >= 0) write (IO%IU0, *) M_CONSTR
+                io_end
+
+                do ISP = 1, WDES%NCDIJ
+                    call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                    call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+                end do
+            end if
 !-----------------------------------------------------------------------
 
             IF (MIX%IMIX /= 0) THEN
@@ -704,16 +849,16 @@ SUBROUTINE ELMIN( &
 !  broyden mixing ... :
                     IF (LCORREL()) THEN
                         CALL BRMIX(KINEDEN, GRIDB, GRIDC, IO, MIX, B_TO_C, &
-                       &   (2*GRIDC%MPLWV), CHTOT, CHTOTL, WDES%NCDIJ, LATT_CUR%B, &
-                       &   LATT_CUR%OMEGA, N_MIX_PAW, RHOLM, RHOLM_LAST, &
-                       &   RMST, RMSC, RMSP, WEIGHT, .TRUE., IERRBR, &
-                       &   NMIX_ONE_CENTRE, RHO_ONE_CENTRE, RHO_ONE_CENTRE_LAST)
+                        &   (2*GRIDC%MPLWV), CHTOT, CHTOTL, WDES%NCDIJ, LATT_CUR%B, &
+                        &   LATT_CUR%OMEGA, N_MIX_PAW, RHOLM, RHOLM_LAST, &
+                        &   RMST, RMSC, RMSP, WEIGHT, .TRUE., IERRBR, &
+                        &   NMIX_ONE_CENTRE, RHO_ONE_CENTRE, RHO_ONE_CENTRE_LAST)
                         MIX%LRESET = .FALSE.
                     ELSE
                         CALL BRMIX(KINEDEN, GRIDB, GRIDC, IO, MIX, B_TO_C, &
-                       &   (2*GRIDC%MPLWV), CHTOT, CHTOTL, WDES%NCDIJ, LATT_CUR%B, &
-                       &   LATT_CUR%OMEGA, N_MIX_PAW, RHOLM, RHOLM_LAST, &
-                       &   RMST, RMSC, RMSP, WEIGHT, .TRUE., IERRBR)
+                        &   (2*GRIDC%MPLWV), CHTOT, CHTOTL, WDES%NCDIJ, LATT_CUR%B, &
+                        &   LATT_CUR%OMEGA, N_MIX_PAW, RHOLM, RHOLM_LAST, &
+                        &   RMST, RMSC, RMSP, WEIGHT, .TRUE., IERRBR)
                         MIX%LRESET = .FALSE.
                     END IF
                 ELSE
@@ -745,7 +890,6 @@ SUBROUTINE ELMIN( &
                     call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
                 end do
             end if
-
 !-----ENDIF (.NOT.INFO%LCHCON)   end of charge update
         END IF
 
@@ -758,17 +902,18 @@ SUBROUTINE ELMIN( &
 !=======================================================================
         CALL SEPERATOR_TIMING(IO%IU6)
         CALL STOP_TIMING("LOOP", IO%IU6, XMLTAG='total')
+
 !=======================================================================
 !  important write statements
 !=======================================================================
 
 2440    FORMAT(/' eigenvalue-minimisations  :', I6, / &
-                                    &       ' total energy-change (2. order) :', E14.7, '  (', E14.7, ')')
+                                                              &       ' total energy-change (2. order) :', E14.7, '  (', E14.7, ')')
 2441    FORMAT(/ &
-                                    &       ' Broyden mixing:'/ &
-                                    &       '  rms(total) =', E12.5, '    rms(broyden)=', E12.5, / &
-                                    &       '  rms(prec ) =', E12.5/ &
-                                    &       '  weight for this iteration ', F10.2)
+                                                                                               &       ' Broyden mixing:'/ &
+                                                                    &       '  rms(total) =', E12.5, '    rms(broyden)=', E12.5, / &
+                                                                                               &       '  rms(prec ) =', E12.5/ &
+                                                                                      &       '  weight for this iteration ', F10.2)
 
 2442    FORMAT(/' eigenvalues of (default mixing * dielectric matrix)'/ &
                 '  average eigenvalue GAMMA= ', F8.4, /(10F8.4))
@@ -827,7 +972,7 @@ SUBROUTINE ELMIN( &
             WRITE (17, *)
         END IF
 
-        if (DEBUG_SC_Q) then
+        if (DEBUG_SC) then
             if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) after-mixing spin:"
             if (IO%IU0 >= 0) write (IO%IU0, *) MW
             if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) target spin:"
@@ -851,57 +996,57 @@ SUBROUTINE ELMIN( &
             END IF
 
 7240        FORMAT(/ &
-                                                               ' Free energy of the ion-electron system (eV)'/ &
-                                                       &        '  ---------------------------------------------------'/ &
-                                                       &        '  alpha Z        PSCENC = ', F18.8/ &
-                                                       &        '  Ewald energy   TEWEN  = ', F18.8/ &
-                                                       &        '  -Hartree energ DENC   = ', F18.8/ &
-                                                       &        '  -exchange      EXHF   = ', F18.8/ &
-                                                       &        '  -V(xc)+E(xc)   XCENC  = ', F18.8/ &
-                                                       &        '  PAW double counting   = ', 2F18.8/ &
-                                                       &        '  entropy T*S    EENTRO = ', F18.8/ &
-                                                       &        '  eigenvalues    EBANDS = ', F18.8/ &
-                                                       &        '  atomic energy  EATOM  = ', F18.8/ &
-                                                       &        '  Solvation  Ediel_sol  = ', F18.8/ &
-                                                       &        '  ---------------------------------------------------'/ &
-                                                       &        '  free energy    TOTEN  = ', F18.8, ' eV'// &
-                                                       &        '  energy without entropy =', F18.8, &
-                                                       &        '  energy(sigma->0) =', F18.8)
+                                                              ' Free energy of the ion-electron system (eV)'/ &
+                                                              &        '  ---------------------------------------------------'/ &
+                                                              &        '  alpha Z        PSCENC = ', F18.8/ &
+                                                              &        '  Ewald energy   TEWEN  = ', F18.8/ &
+                                                              &        '  -Hartree energ DENC   = ', F18.8/ &
+                                                              &        '  -exchange      EXHF   = ', F18.8/ &
+                                                              &        '  -V(xc)+E(xc)   XCENC  = ', F18.8/ &
+                                                              &        '  PAW double counting   = ', 2F18.8/ &
+                                                              &        '  entropy T*S    EENTRO = ', F18.8/ &
+                                                              &        '  eigenvalues    EBANDS = ', F18.8/ &
+                                                              &        '  atomic energy  EATOM  = ', F18.8/ &
+                                                              &        '  Solvation  Ediel_sol  = ', F18.8/ &
+                                                              &        '  ---------------------------------------------------'/ &
+                                                              &        '  free energy    TOTEN  = ', F18.8, ' eV'// &
+                                                              &        '  energy without entropy =', F18.8, &
+                                                              &        '  energy(sigma->0) =', F18.8)
 7241        FORMAT(/ &
-                                                               ' Free energy of the ion-electron system (eV)'/ &
-                                                       &        '  ---------------------------------------------------'/ &
-                                                       &        '  alpha Z        PSCENC = ', F18.8/ &
-                                                       &        '  Ewald energy   TEWEN  = ', F18.8/ &
-                                                       &        '  -Hartree energ DENC   = ', F18.8/ &
-                                                       &        '  -exchange      EXHF   = ', F18.8/ &
-                                                       &        '  -V(xc)+E(xc)   XCENC  = ', F18.8/ &
-                                                       &        '  PAW double counting   = ', 2F18.8/ &
-                                                       &        '  entropy T*S    EENTRO = ', F18.8/ &
-                                                       &        '  eigenvalues    EBANDS = ', F18.8/ &
-                                                       &        '  core contrib.  ECORE  = ', F18.8/ &
-                                                       &        '  Solvation  Ediel_sol  = ', F18.8/ &
-                                                       &        '  ---------------------------------------------------'/ &
-                                                       &        '  free energy    TOTEN  = ', F18.8, ' eV'// &
-                                                       &        '  energy without entropy =', F18.8, &
-                                                       &        '  energy(sigma->0) =', F18.8)
+                                                              ' Free energy of the ion-electron system (eV)'/ &
+                                                              &        '  ---------------------------------------------------'/ &
+                                                              &        '  alpha Z        PSCENC = ', F18.8/ &
+                                                              &        '  Ewald energy   TEWEN  = ', F18.8/ &
+                                                              &        '  -Hartree energ DENC   = ', F18.8/ &
+                                                              &        '  -exchange      EXHF   = ', F18.8/ &
+                                                              &        '  -V(xc)+E(xc)   XCENC  = ', F18.8/ &
+                                                              &        '  PAW double counting   = ', 2F18.8/ &
+                                                              &        '  entropy T*S    EENTRO = ', F18.8/ &
+                                                              &        '  eigenvalues    EBANDS = ', F18.8/ &
+                                                              &        '  core contrib.  ECORE  = ', F18.8/ &
+                                                              &        '  Solvation  Ediel_sol  = ', F18.8/ &
+                                                              &        '  ---------------------------------------------------'/ &
+                                                              &        '  free energy    TOTEN  = ', F18.8, ' eV'// &
+                                                              &        '  energy without entropy =', F18.8, &
+                                          &        '  energy(sigma->0) =', F18.8)
 72612       FORMAT(//&
-                                                  &        '  METAGGA EXCHANGE AND CORRELATION (eV)'/ &
-                                                  &        '  ---------------------------------------------------'/ &
-                                                  &        '  LDA+GGA E(xc)  EXCG   = ', F18.6/ &
-                                                  &        '  LDA+GGA PAW    PS : AE= ', 2F18.6/ &
-                                                  &        '  core xc             AE= ', 1F18.6/ &
-                                                  &        '  metaGGA E(xc)  EXCM   = ', F18.6/ &
-                                                  &        '  metaGGA PAW    PS : AE= ', 2F18.6/ &
-                                                  &        '  metaGGA core xc     AE= ', 1F18.6/ &
-                                                  &        '  ---------------------------------------------------'/ &
-                                                  &        '  METAGGA result:'/ &
-                                                  &        '  free  energy   TOTEN  = ', F18.6, ' eV'// &
-                                                  &        '  energy  without entropy=', F18.6, &
-                                                  &        '  energy(sigma->0) =', F16.6)
+                                                        &        '  METAGGA EXCHANGE AND CORRELATION (eV)'/ &
+                                                        &        '  ---------------------------------------------------'/ &
+                                                        &        '  LDA+GGA E(xc)  EXCG   = ', F18.6/ &
+                                                        &        '  LDA+GGA PAW    PS : AE= ', 2F18.6/ &
+                                                        &        '  core xc             AE= ', 1F18.6/ &
+                                                        &        '  metaGGA E(xc)  EXCM   = ', F18.6/ &
+                                                        &        '  metaGGA PAW    PS : AE= ', 2F18.6/ &
+                                                        &        '  metaGGA core xc     AE= ', 1F18.6/ &
+                                                        &        '  ---------------------------------------------------'/ &
+                                                        &        '  METAGGA result:'/ &
+                                                        &        '  free  energy   TOTEN  = ', F18.6, ' eV'// &
+                                                        &        '  energy  without entropy=', F18.6, &
+                                                        &        '  energy(sigma->0) =', F16.6)
             ELSE io1
             WRITE (IO%IU6, 7242) TOTEN, TOTEN - E%EENTROPY
 7242        FORMAT(/'  free energy = ', E20.12, &
-                                                                                    &        '  energy without entropy= ', E20.12)
+                                                                                      &        '  energy without entropy= ', E20.12)
 
         END IF io1
 !     too slow on many servers nowadays
@@ -934,7 +1079,7 @@ SUBROUTINE ELMIN( &
 
             WRITE (IO%IU6, 2202) EFERMI, REAL(E%CVZERO, KIND=q), E%PSCENC/INFO%NELECT + BETATO
 2202        FORMAT(' E-fermi : ', F8.4, '     XC(G=0): ', F8.4, &
-                                                                                    &         '     alpha+bet :', F8.4/)
+                                                                                                &         '     alpha+bet :', F8.4/)
 
             IF (INFO%IHARMONIC == 1) THEN
                 CALL WRITE_EIGENVAL_RESIDUAL(WDES, W, IO%IU6)
@@ -965,7 +1110,7 @@ SUBROUTINE ELMIN( &
                 WRITE (IO%IU6, *) 'pseudopotential strength for first ion, spin component:', I
                 DO LP = 1, P(1)%LMMAX
                     WRITE (IO%IU6, '(16(F7.3,1X))') &
-            &             (CDIJ(L, LP, NI, I), L=1, MIN(8, P(1)%LMMAX))
+             &             (CDIJ(L, LP, NI, I), L=1, MIN(8, P(1)%LMMAX))
 !     &             (REAL(CDIJ(L,LP,NI,I),q),AIMAG(CDIJ(L,LP,1,I))*1000,L=1,MIN(16,P(1)%LMMAX))
                 END DO
             END DO
@@ -977,7 +1122,7 @@ SUBROUTINE ELMIN( &
                 WRITE (IO%IU6, *) 'total augmentation occupancy for first ion, spin component:', I
                 DO LP = 1, P(1)%LMMAX
                     WRITE (IO%IU6, '(16(F7.3,1X))') &
-            &             (REAL(CRHODE(L, LP, NI, I), q), L=1, MIN(16, P(1)%LMMAX))
+             &             (REAL(CRHODE(L, LP, NI, I), q), L=1, MIN(16, P(1)%LMMAX))
                 END DO
 !           DO LP=1,P(1)%LMMAX
 !              WRITE(IO%IU6,'(16(F7.3,1X))') &
@@ -1045,16 +1190,33 @@ SUBROUTINE ELMIN( &
                 WRITE (IO%IU0, *) 'hard stop encountered!  aborting job ...'
             WRITE (IO%IU6, 13131)
 13131       FORMAT(5X, //, &
-                                                                        &  '------------------------ aborting loop because hard', &
+                                                                         &  '------------------------ aborting loop because hard', &
                                                                        &  ' stop was set ---------------------------------------'//)
             io_end
             EXIT electron
         END IF
         TOTENL = TOTEN
 
+        if (DEBUG_SC) then
+            do ISP = 1, WDES%NCDIJ
+                call FFT3D(CHTOT(1, ISP), GRIDC, 1)
+            end do
+
+            call M_INT(CHTOT, GRIDC, WDES)
+            io_begin
+            if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) end-of-SCF-step spin:"
+            if (IO%IU0 >= 0) write (IO%IU0, *) MW
+            if (IO%IU0 >= 0) write (IO%IU0, *) "(Debug) target spin:"
+            if (IO%IU0 >= 0) write (IO%IU0, *) M_CONSTR
+            io_end
+
+            do ISP = 1, WDES%NCDIJ
+                call FFT_RC_SCALE(CHTOT(1, ISP), CHTOT(1, ISP), GRIDC)
+                call SETUNB_COMPAT(CHTOT(1, ISP), GRIDC)
+            end do
+        end if
     END DO electron
 
-!
 ! calculate dipol corrections now
 !
     IF (DIP%IDIPCO > 0) THEN
@@ -1078,98 +1240,4 @@ SUBROUTINE ELMIN( &
     DWRITE0 'electron left'
 
     RETURN
-END SUBROUTINE ELMIN
-
-!**********************************************************************
-!
-! write eigenvalues
-!
-!**********************************************************************
-
-SUBROUTINE WRITE_EIGENVAL(WDES, W, IU6)
-    USE wave
-    USE prec
-    TYPE(wavedes) WDES
-    TYPE(wavespin) W          ! wavefunction
-    INTEGER IU6
-    ! local
-    INTEGER ISP, NN, I
-    INTEGER NB
-
-    NB = WDES%NB_TOT
-
-    IF (IU6 >= 0) THEN
-
-        DO ISP = 1, WDES%ISPIN
-            IF (WDES%ISPIN == 2) WRITE (IU6, '(/A,I1)') ' spin component ', ISP
-            DO NN = 1, WDES%NKPTS
-                WRITE (IU6, 2201) NN, WDES%VKPT(1, NN), WDES%VKPT(2, NN), WDES%VKPT(3, NN), &
-             &      (I, REAL(W%CELTOT(I, NN, ISP), KIND=q), W%FERTOT(I, NN, ISP)*WDES%RSPIN, I=1, NB)
-            END DO
-        END DO
-
-2201    FORMAT(/' k-point ', I5, ' :', 3X, 3F10.4/ &
-                                                                            &         '  band No.  band energies     occupation '/ &
-                                                                             &           (1X, I6, 3X, F10.4, 3X, F10.5))
-    END IF
-
-END SUBROUTINE WRITE_EIGENVAL
-
-SUBROUTINE WRITE_EIGENVAL_RESIDUAL(WDES, W, IU6)
-    USE wave
-    USE prec
-    TYPE(wavedes) WDES
-    TYPE(wavespin) W          ! wavefunction
-    INTEGER IU6
-    ! local
-    INTEGER ISP, NN, I
-    INTEGER NB
-
-    NB = WDES%NB_TOT
-
-    IF (IU6 >= 0) THEN
-
-        DO ISP = 1, WDES%ISPIN
-            IF (WDES%ISPIN == 2) WRITE (IU6, '(/A,I1)') ' spin component ', ISP
-            DO NN = 1, WDES%NKPTS
-                WRITE (IU6, 2201) NN, WDES%VKPT(1, NN), WDES%VKPT(2, NN), WDES%VKPT(3, NN), &
-                &      (I, REAL(W%CELTOT(I, NN, ISP), KIND=q), W%FERTOT(I, NN, ISP)*WDES%RSPIN, W%AUXTOT(I, NN, ISP), I=1, NB)
-            END DO
-        END DO
-
-2201    FORMAT(/' k-point ', I5, ' :', 3X, 3F10.4/ &
-                                                                      &         '  band No.  band energies  occupation  residual'/ &
-                                                                              &           (1X, I6, 3X, F10.4, 5X, F10.5, 3X, E10.3))
-    END IF
-
-END SUBROUTINE WRITE_EIGENVAL_RESIDUAL
-
-SUBROUTINE WRITE_EIGENVAL_NBANDS(WDES, W, IU6, NBANDS)
-    USE wave
-    USE prec
-    TYPE(wavedes) WDES
-    TYPE(wavespin) W          ! wavefunction
-    INTEGER IU6
-    INTEGER NBANDS
-    ! local
-    INTEGER ISP, NN, I
-    INTEGER NB
-
-    NB = NBANDS
-
-    IF (IU6 >= 0) THEN
-
-        DO ISP = 1, WDES%ISPIN
-            IF (WDES%ISPIN == 2) WRITE (IU6, '(/A,I1)') ' spin component ', ISP
-            DO NN = 1, WDES%NKPTS
-                WRITE (IU6, 2201) NN, WDES%VKPT(1, NN), WDES%VKPT(2, NN), WDES%VKPT(3, NN), &
-                     &      (I, REAL(W%CELTOT(I, NN, ISP), KIND=q), W%FERTOT(I, NN, ISP)*WDES%RSPIN, I=1, NB)
-            END DO
-        END DO
-
-2201    FORMAT(/' k-point ', I5, ' :', 3X, 3F10.4/ &
-                                                                            &         '  band No.  band energies     occupation '/ &
-                                                                                     &           (1X, I6, 3X, F10.4, 3X, F10.5))
-    END IF
-
-END SUBROUTINE WRITE_EIGENVAL_NBANDS
+END SUBROUTINE ELMIN_SASC
