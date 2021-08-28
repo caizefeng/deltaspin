@@ -94,6 +94,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
 
     complex(q) CHTOT(GRIDC%MPLWV, WDES%NCDIJ) ! charge-density in real / reciprocal space
     complex(q) CHTOT_RESERVE(GRIDC%MPLWV, WDES%NCDIJ) ! charge-density in real / reciprocal space
+    complex(q) CHTOT_last_step(GRIDC%MPLWV, WDES%NCDIJ) ! charge-density in real / reciprocal space
     complex(q) CHTOTL(GRIDC%MPLWV, WDES%NCDIJ)! old charge-density
     complex(q) CHTOTL_RESERVE(GRIDC%MPLWV, WDES%NCDIJ)! old charge-density
     RGRID DENCOR(GRIDC%RL%NP)           ! partial core
@@ -121,10 +122,15 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     integer :: LDIMP, LMDIMP
 
     real(q), allocatable :: nu(:, :), dnu(:, :), target_spin(:, :), spin(:, :)
+    real(q), allocatable :: dnu_last_step(:, :)
     real(q), allocatable :: spin_plus(:, :)
     real(q), allocatable :: delta_spin(:, :), delta_spin_old(:, :)
     real(q), allocatable :: search(:, :), search_old(:, :)
     real(q), allocatable :: target_spin_mask(:, :), spin_mask(:, :), spin_plus_mask(:, :)
+    real(q), allocatable :: spin_nu_gradient(:, :, :, :), spin_nu_gradient_diag(:, :)
+    real(q), allocatable :: spin_change(:, :), nu_change(:, :)
+    real(q), allocatable :: max_gradient(:)
+    integer, allocatable :: max_gradient_index(:, :)
 
     real(q) :: epsilon
     real(q) :: alpha_trial, alpha_opt, alpha_plus, beta
@@ -142,21 +148,25 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     real(q) :: sum_k, sum_k2
 
     integer :: N
-
+    integer :: i, j, k, l
     integer :: N_RESERVE, NELM_RESERVE, IALGO_RESERVE, IHARMONIC_RESERVE, NELMDL_RESERVE, NELMIN_RESERVE
     logical :: LCHCOS_RESERVE, LONESW_RESERVE, LONESW_AUTO_RESERVE, LDAVID_RESERVE, &
     & LRMM_RESERVE, LORTHO_RESERVE, LCDIAG_RESERVE, LPDIAG_RESERVE, LPRECONDH_RESERVE, &
     & LEXACT_DIAG_RESERVE
 
     allocate (nu(3, T_INFO%NIONS))
-    allocate (dnu, mold=nu)
+    allocate (dnu, dnu_last_step, mold=nu)
     allocate (target_spin, spin, spin_plus, delta_spin, delta_spin_old, mold=nu)
     allocate (search, search_old, mold=nu)
     allocate (target_spin_mask, spin_mask, spin_plus_mask, mold=nu)
+    allocate (spin_nu_gradient(3, T_INFO%NIONS, 3, T_INFO%NIONS))
+    allocate (spin_nu_gradient_diag(3, T_INFO%NIONS))
+    allocate (spin_change, nu_change, mold=nu)
+    allocate (max_gradient_index(2, T_INFO%NTYP), max_gradient(T_INFO%NTYP))
 
     target_spin = M_CONSTR
     dnu = 0
-    ! num_atom = T_INFO%NIONS
+    dnu_last_step = 0
     num_atom = count(CONSTRL == 1)/3
 
     if (DECAY_EPSILON > 0) then
@@ -229,7 +239,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     if (IO%IU0 >= 0) write (IO%IU0, *) "Covergence criterion this loop:", epsilon
     io_end
 
-    do i_step = 1, num_step
+    lambda: do i_step = 1, num_step
 
 ! restrict_current = restrict * 0.9 ** (i_step - 1) + 1.0e-3
         restrict_current = restrict
@@ -267,6 +277,61 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
                 CHDEN, SV, DOS, DOSI, CHF, CHAM, ECONV, XCSIF, &
                 NSTEP, LMDIM, IRDMAX, NEDOS, &
                 TOTEN, EFERMI, LDIMP, LMDIMP, CHTOT_RESERVE)
+
+            spin_change = MW - spin
+            nu_change = L_CONSTR_L_ADD - dnu_last_step
+            where (CONSTRL == 0) 
+                spin_change = 0.0
+                nu_change = 1.0
+            end where
+            do i = 1, 3
+                do j = 1, T_INFO%NIONS
+                    do k = 1, 3
+                        do l = 1, T_INFO%NIONS
+                            spin_nu_gradient(i, j, k, l) = spin_change(i, j) / nu_change(k, l)
+                        end do
+                    end do
+                end do
+            end do
+            do i = 1, 3
+                do j = 1, T_INFO%NIONS
+                    spin_nu_gradient_diag(i, j) = spin_nu_gradient(i, j, i, j)
+                end do
+            end do
+
+            i = 1
+            do j = 1, T_INFO%NTYP
+                max_gradient_index(:, j) = maxloc(abs(spin_nu_gradient_diag(:, i:(i+T_INFO%NITYP(j)-1))))
+                max_gradient(j) = maxval(abs(spin_nu_gradient_diag(:, i:(i+T_INFO%NITYP(j)-1))))
+                i = i + T_INFO%NITYP(j)
+            end do
+
+            io_begin
+            if (IO%IU0 >= 0) write (IO%IU0, *) "diagonal gradient:"
+            if (IO%IU0 >= 0) write (IO%IU0, *) spin_nu_gradient_diag
+            if (IO%IU0 >= 0) write (IO%IU0, *) "maximum gradient appears at: "
+            do j = 1, T_INFO%NTYP
+                if (IO%IU0 >= 0) write (IO%IU0, 15589) max_gradient_index(1, j), max_gradient_index(2, j)
+            end do
+            if (IO%IU0 >= 0) write (IO%IU0, *)
+15589       format(" ( ", i0, " , ", i0, " )"\)
+            if (IO%IU0 >= 0) write (IO%IU0, *) "maximum gradient: " 
+            do j = 1, T_INFO%NTYP
+                if (IO%IU0 >= 0) write (IO%IU0, '(1x, e14.8, 1x\)') max_gradient(j)
+            end do
+            if (IO%IU0 >= 0) write (IO%IU0, *)
+            io_end
+
+            do j = 1, T_INFO%NTYP
+                if (i_step > 2 .and. CONV_BOUND_GRAD(j) > 0 .and. max_gradient(j) < CONV_BOUND_GRAD(j)) then
+                    io_begin
+                    if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a, i0, a)') "Reach limitation of current step ( maximum gradient < ", CONV_BOUND_GRAD(j), " in atom type ", j, " ), exit."
+                    io_end
+                    CHTOT = CHTOT_last_step
+                    L_CONSTR = L_CONSTR_L_DIAG + dnu_last_step
+                    exit lambda
+                end if
+            end do
 
             spin = MW
             io_begin
@@ -331,7 +396,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
                     TOTEN, EFERMI, LDIMP, LMDIMP, CHTOT_RESERVE)
             end if
             L_CONSTR = L_CONSTR_L_DIAG + L_CONSTR_L_ADD
-            exit
+            exit lambda
         end if
 
         if (i_step > 1) then
@@ -376,8 +441,11 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         if (IO%IU0 >= 0) write (IO%IU0, *) alpha_trial*search
         io_end
 
+        CHTOT_last_step = CHTOT
+        dnu_last_step = dnu
         dnu = dnu + alpha_trial*search
         L_CONSTR_L_ADD = dnu
+        where (CONSTRL == 0) dnu_last_step = 0.0
         where (CONSTRL == 0) L_CONSTR_L_ADD = 0.0
 
         io_begin
@@ -443,8 +511,6 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         io_begin
         if (IO%IU0 >= 0) write (IO%IU0, *) "cosine between target and trial: ", cos_theta
         io_end
-        ! alpha_opt = adjust_alpha_noncollinear(spin, spin_plus, target_spin, alpha_trial)
-        ! call adjust_alpha_noncollinear(spin, spin_plus, target_spin, alpha_trial, alpha_opt, IO%IU0, NODE_ME, IONODE)
 
 ! restrict adapted step
         boundary = abs(alpha_opt*maxval(abs(search)))
@@ -453,11 +519,13 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         if (IO%IU0 >= 0) write (IO%IU0, *) "boundary before = ", boundary
         io_end
 
-        if (CONV_BOUND > 0 .and. boundary <= CONV_BOUND) then
+        if (CONV_BOUND > 0 .and. boundary < CONV_BOUND) then
             io_begin
-          if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a)') "Reach limitation of current step ( boundary < ", CONV_BOUND, " ), exit."
+            if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a)') "Reach limitation of current step ( boundary < ", CONV_BOUND, " ), exit."
             io_end
-            exit
+            CHTOT = CHTOT_last_step
+            L_CONSTR = L_CONSTR_L_DIAG + dnu_last_step
+            exit lambda
         end if
 
         if (CONSTR_RESTRICT > 0 .and. boundary > restrict_current) then
@@ -502,11 +570,14 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         ! if (IO%IU0 >= 0) write (IO%IU0, *) "alpha_trial:", alpha_trial
         ! io_end
 
-    end do
+    end do lambda
 
     deallocate (nu, dnu)
     deallocate (target_spin, spin, spin_plus, delta_spin, delta_spin_old)
     deallocate (search, search_old)
+    deallocate (spin_nu_gradient, spin_nu_gradient_diag)
+    deallocate (spin_change, nu_change)
+    deallocate (max_gradient_index, max_gradient)
 
     CHTOTL = CHTOTL_RESERVE
     !CHTOT = CHTOT

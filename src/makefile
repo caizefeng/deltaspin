@@ -195,6 +195,15 @@ clean:
 # special rules
 #-----------------------------------------------------------------------
 
+electron.f90: electron.F deltaspin/elmin_sasc_quadratic.f90 deltaspin/elmin_sasc_in.f90 deltaspin/elmin_sasc.f90 deltaspin/lambda_inner_optimization.f90 deltaspin/lambda_inner_optimization_decouple_atom.f90 deltaspin/lambda_inner_optimization_decouple_component.f90 deltaspin/adjust_alpha_noncollinear.f90
+	$(FPP)
+
+constrmag.f90: constrmag.F deltaspin/constrained_m_reader.f90 deltaspin/e_constraint.f90 deltaspin/adpt_constraining_pot.f90 deltaspin/write_constrained_m.f90
+	$(FPP)
+
+pot.f90: pot.F deltaspin/potlok_sasc_in.f90
+	$(FPP)
+
 main.o : main$(SUFFIX)
 	$(FC) $(FREE) $(FFLAGS) $(DEBUG) $(INCS) -c $*$(SUFFIX)
 

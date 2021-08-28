@@ -256,6 +256,17 @@ SUBROUTINE CONSTRAINED_M_READER(T_INFO, WDES, IU0, IU5)
                 END IF
             END IF
 
+            ALLOCATE (CONV_BOUND_GRAD(T_INFO%NTYP))
+            CONV_BOUND_GRAD = -1
+            CALL RDATAB(LOPEN, INCAR, IU5, 'SCCONVB_GRAD', '=', '#', ';', 'F', &
+           &   IDUM, CONV_BOUND_GRAD, CDUM, LDUM, CHARAC, N, T_INFO%NTYP, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''SCCONVB_GRAD'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
             INI_SC_ALPHA = 0.1
             CALL RDATAB(LOPEN, INCAR, IU5, 'INISC', '=', '#', ';', 'F', &
            &   IDUM, INI_SC_ALPHA, CDUM, LDUM, CHARAC, N, 1, IERR)
