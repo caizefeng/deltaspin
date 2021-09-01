@@ -267,6 +267,16 @@ SUBROUTINE CONSTRAINED_M_READER(T_INFO, WDES, IU0, IU5)
                 END IF
             END IF
 
+            CONSTR_NUM_STEP_MIN = 3
+            CALL RDATAB(LOPEN, INCAR, IU5, 'NSCMIN', '=', '#', ';', 'I', &
+           &   CONSTR_NUM_STEP_MIN, RDUM, CDUM, LDUM, CHARAC, N, 1, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''NSCMIN'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
             INI_SC_ALPHA = 0.1
             CALL RDATAB(LOPEN, INCAR, IU5, 'INISC', '=', '#', ';', 'F', &
            &   IDUM, INI_SC_ALPHA, CDUM, LDUM, CHARAC, N, 1, IERR)

@@ -30,5 +30,5 @@ timing.log
 log-*
 
 /test/*
-!/test/metal
-!/test/insulator
+!/test/metal/Fe
+!/test/insulator/NiO

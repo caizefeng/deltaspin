@@ -323,7 +323,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
             io_end
 
             do j = 1, T_INFO%NTYP
-                if (i_step > 2 .and. CONV_BOUND_GRAD(j) > 0 .and. max_gradient(j) < CONV_BOUND_GRAD(j)) then
+                if (i_step > CONSTR_NUM_STEP_MIN .and. CONV_BOUND_GRAD(j) > 0 .and. max_gradient(j) < CONV_BOUND_GRAD(j)) then
                     io_begin
                     if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a, i0, a)') "Reach limitation of current step ( maximum gradient < ", CONV_BOUND_GRAD(j), " in atom type ", j, " ), exit."
                     io_end

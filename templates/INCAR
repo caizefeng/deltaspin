@@ -1,12 +1,10 @@
-SYSTEM = Fe
-GGA = PE
-GGA_COMPAT = .FALSE.
-LASPH = .TRUE.
+SYSTEM = NiO
+#GGA = PE
 
 #Electronic minimization
-PREC = Normal
+PREC = Accurate
 ENCUT = 600
-EDIFF = 1E-8
+EDIFF = 1E-9
 LORBIT  = 11
 LREAL = .FALSE.
 ISTART  = 0
@@ -25,8 +23,8 @@ NELM = 500
 #POTIM = 0.2  #OPT
 
 #DOS
-ISMEAR = 1
-SIGMA = 0.05
+ISMEAR = -5
+SIGMA = 0.2
 #NEDOS = 3000 #DOS
 
 #Magnetism
@@ -35,26 +33,31 @@ SIGMA = 0.05
 # \int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(|\mathbf{r}|) d\mathbf{r}
 
 ISYM = -1
-RWIGS = 1.164                 # Better to be determined from Bader analysis
+RWIGS = 1.164                  # Better to be determined from Bader analysis
+GGA_COMPAT = .FALSE.
+LASPH = .TRUE.
 ISPIN = 2
 LNONCOLLINEAR = .TRUE.
-#LSORBIT  = .TRUE.
+LSORBIT  = .TRUE.
 
 #SASC
 I_CONSTRAINED_M = 2
-MAGMOM   = 0.7194 -0.0231 1.3714 -1.1560 -0.0352 1.0305 
-M_CONSTR = 0.7194 -0.0231 1.3714 -1.1560 -0.0352 1.0305 
+MAGMOM = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
+M_CONSTR = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
 SCTYPE = 1                     # Type of SASC calculation   0: noSASC  1: SASC(L)  2: SASC(Q)  3: SASC(QL)
 
 #SASC(L)
-IDECOSC = 1                    # Whether Lagragian coefficients are coupled   0: coupled  1: decoupled between atoms  2: decoupled between every Cartesian component
-LAMBDA   = 0 0 0 0 0 0         # Initial Lagragian coefficients for SASC(L)
-CONSTRL  = 1 1 1 1 1 1         # Whether the component is constrained or not   0: not constrained  1: constrained
-NSC = 100                      # Maximum number of steps for inner optimization
-SCDIFF = 1E-6                  # Convergence criterion of iteration (RMS)
+IDECOSC = 0                    # Whether Lagragian coefficients are coupled   0: coupled  1: decoupled between atoms  2: decoupled between every Cartesian component
+LAMBDA   = 12*0                # Initial Lagragian coefficients for SASC(L)
+CONSTRL  = 6*1 6*0             # Whether the component is constrained or not   0: not constrained  1: constrained
+NSC = 100                      # Maximum number of steps for each inner optimization
+NSCMIN = 2                     # Minimum number of steps for each inner optimization
+SCDIFF = 1E-8                  # Convergence criterion of iteration (RMS)
+SCCONVB_GRAD = 0.5 -1          # Break condition for local gradients of spins w.r.t. Lagragian coefficients (local field)   -1: off for the element
+
 SCDECAY = -1                   # Exponential decay of convergence criterion   -1: do not decay  >0,<1: exponential base
 SCDIFFB = 1E-7                 # Lower bound of criterion decay, not gonna work if SCDECAY = -1  
-SCCONVB = -1                   # Break condition for Lagragian coefficients difference between two inner steps   -1: do not use this condition 
+SCCONVB = -1                   # Break condition for Lagragian coefficients difference between two inner steps   -1: this condition is off
 INISC = 0.01                   # Initial trial step size
 SCCUT = 3                      # Restriction of step size
 NELMSCI = 1                    # Number of electronic steps BEFORE SASC(L)
