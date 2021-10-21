@@ -130,19 +130,21 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     real(q), allocatable :: spin_nu_gradient(:, :, :, :), spin_nu_gradient_diag(:, :)
     real(q), allocatable :: spin_change(:, :), nu_change(:, :)
     real(q), allocatable :: max_gradient(:)
+    real(q), allocatable :: bound_gradient(:)
     integer, allocatable :: max_gradient_index(:, :)
-
+    
     real(q) :: epsilon
     real(q) :: alpha_trial, alpha_opt, alpha_plus, beta
     real(q) :: mean_error, mean_error_old, rms_error
     real(q) :: g
     real(q) :: restrict, restrict_current
     real(q) :: boundary
-
+    
     integer :: num_atom
     integer :: num_step
     integer :: i_step
     integer :: cg_beta
+    integer :: current_gradient_index
     !character(len=1024) :: i_step_string
 
     real(q) :: sum_k, sum_k2
@@ -162,7 +164,7 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
     allocate (spin_nu_gradient(3, T_INFO%NIONS, 3, T_INFO%NIONS))
     allocate (spin_nu_gradient_diag(3, T_INFO%NIONS))
     allocate (spin_change, nu_change, mold=nu)
-    allocate (max_gradient_index(2, T_INFO%NTYP), max_gradient(T_INFO%NTYP))
+    allocate (max_gradient_index(2, T_INFO%NTYP), max_gradient(T_INFO%NTYP), bound_gradient(T_INFO%NTYP))
 
     target_spin = M_CONSTR
     dnu = 0
@@ -174,6 +176,25 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
         if (epsilon < LBOUND_EPSILON) epsilon = LBOUND_EPSILON
     else
         epsilon = CONSTR_EPSILON
+    end if
+
+    if (ALGO_GRAD_DECAY == 0) then
+        bound_gradient = CONV_BOUND_GRAD
+    else if (ALGO_GRAD_DECAY == 1) then
+        bound_gradient = CONV_BOUND_GRAD
+        if (DECAY_GRADIENT > 0) then
+            where (CONV_BOUND_GRAD > 0)
+            bound_gradient = bound_gradient*(DECAY_GRADIENT**(N - NELM_SC_INITIAL))
+            end where
+            where (bound_gradient < LBOUND_GRAD .and. bound_gradient > 0) bound_gradient = LBOUND_GRAD
+        end if
+    else if (ALGO_GRAD_DECAY == 2) then
+        current_gradient_index = findloc((N - NELM_SC_INITIAL) >= GRAD_STEP_POINT, .TRUE., dim=1, back=.TRUE.)
+        if (current_gradient_index /= 0) then
+            bound_gradient = BOUND_GRAD_SEQUENCE(:, current_gradient_index)
+        else
+            bound_gradient = CONV_BOUND_GRAD
+        end if
     end if
 
     alpha_trial = INI_SC_ALPHA
@@ -323,9 +344,9 @@ subroutine lambda_inner_optimization(HAMILTONIAN, KINEDEN, &
             io_end
 
             do j = 1, T_INFO%NTYP
-                if (i_step > CONSTR_NUM_STEP_MIN .and. CONV_BOUND_GRAD(j) > 0 .and. max_gradient(j) < CONV_BOUND_GRAD(j)) then
+                if (i_step > CONSTR_NUM_STEP_MIN .and. bound_gradient(j) > 0 .and. max_gradient(j) < bound_gradient(j)) then
                     io_begin
-                    if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a, i0, a)') "Reach limitation of current step ( maximum gradient < ", CONV_BOUND_GRAD(j), " in atom type ", j, " ), exit."
+                    if (IO%IU0 >= 0) write (IO%IU0, '(a, es9.3, a, i0, a)') "Reach limitation of current step ( maximum gradient < ", bound_gradient(j), " in atom type ", j, " ), exit."
                     io_end
                     CHTOT = CHTOT_last_step
                     L_CONSTR = L_CONSTR_L_DIAG + dnu_last_step

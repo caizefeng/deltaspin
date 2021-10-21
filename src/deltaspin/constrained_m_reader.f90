@@ -176,7 +176,7 @@ SUBROUTINE CONSTRAINED_M_READER(T_INFO, WDES, IU0, IU5)
                 END IF
             END IF
 
-            NELM_SC_INITIAL = 5
+            NELM_SC_INITIAL = 1
             CALL RDATAB(LOPEN, INCAR, IU5, 'NELMSCI', '=', '#', ';', 'I', &
            &   NELM_SC_INITIAL, RDUM, CDUM, LDUM, CHARAC, N, 1, IERR)
             IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
@@ -266,6 +266,70 @@ SUBROUTINE CONSTRAINED_M_READER(T_INFO, WDES, IU0, IU5)
                     WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
                 END IF
             END IF
+
+            ALGO_GRAD_DECAY = 0
+            CALL RDATAB(LOPEN, INCAR, IU5, 'IDECAY_GRAD', '=', '#', ';', 'I', &
+           &   ALGO_GRAD_DECAY, RDUM, CDUM, LDUM, CHARAC, N, 1, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''IDECAY_GRAD'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
+            DECAY_GRADIENT = -1
+            CALL RDATAB(LOPEN, INCAR, IU5, 'SCDECAY_GRAD', '=', '#', ';', 'F', &
+           &   IDUM, DECAY_GRADIENT, CDUM, LDUM, CHARAC, N, 1, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''SCDECAY_GRAD'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
+            LBOUND_GRAD = 0.1
+            CALL RDATAB(LOPEN, INCAR, IU5, 'SCGRADB', '=', '#', ';', 'F', &
+           &   IDUM, LBOUND_GRAD, CDUM, LDUM, CHARAC, N, 1, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''SCGRADB'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
+            GRAD_STEP_NUM = 0
+            CALL RDATAB(LOPEN, INCAR, IU5, 'NGRAD', '=', '#', ';', 'I', &
+           &   GRAD_STEP_NUM, RDUM, CDUM, LDUM, CHARAC, N, 1, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''NGRAD'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
+            ALLOCATE (GRAD_STEP_POINT(GRAD_STEP_NUM))
+            GRAD_STEP_POINT = 0
+            CALL RDATAB(LOPEN, INCAR, IU5, 'NGRAD_STEP', '=', '#', ';', 'I', &
+           &   GRAD_STEP_POINT, RDUM, CDUM, LDUM, CHARAC, N, GRAD_STEP_NUM, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''NGRAD_STEP'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+
+            ALLOCATE (BOUND_GRAD_SEQUENCE_LINE(T_INFO%NTYP*GRAD_STEP_NUM))
+            ALLOCATE (BOUND_GRAD_SEQUENCE(T_INFO%NTYP, GRAD_STEP_NUM))
+            BOUND_GRAD_SEQUENCE_LINE = -1
+            CALL RDATAB(LOPEN, INCAR, IU5, 'NGRAD_VALUE', '=', '#', ';', 'F', &
+           &   IDUM, BOUND_GRAD_SEQUENCE_LINE, CDUM, LDUM, CHARAC, N, T_INFO%NTYP*GRAD_STEP_NUM, IERR)
+            IF (((IERR /= 0) .AND. (IERR /= 3)) .OR. ((IERR == 0) .AND. (N < 1))) THEN
+                IF (IU0 >= 0) THEN
+                    WRITE (IU0, *) 'Error reading item ''NGRAD_VALUE'' from file INCAR.'
+                    WRITE (IU0, *) 'Error code was IERR=', IERR, ' Found N=', N, ' data items'
+                END IF
+            END IF
+            BOUND_GRAD_SEQUENCE = reshape(BOUND_GRAD_SEQUENCE_LINE, (/T_INFO%NTYP, GRAD_STEP_NUM/))
 
             CONSTR_NUM_STEP_MIN = 3
             CALL RDATAB(LOPEN, INCAR, IU5, 'NSCMIN', '=', '#', ';', 'I', &

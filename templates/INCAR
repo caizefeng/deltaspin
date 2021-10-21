@@ -53,9 +53,17 @@ CONSTRL  = 6*1 6*0             # Whether the component is constrained or not   0
 NSC = 100                      # Maximum number of steps for each inner optimization
 NSCMIN = 2                     # Minimum number of steps for each inner optimization
 SCDIFF = 1E-8                  # Convergence criterion of iteration (RMS)
-SCCONVB_GRAD = 0.5 -1          # Break condition for local gradients of spins w.r.t. Lagragian coefficients (local field)   -1: off for the element
+SCCONVB_GRAD = 1.9 -1          # Break condition for local gradients of spins w.r.t. Lagragian coefficients (local field)   -1: off for the element
 
-SCDECAY = -1                   # Exponential decay of convergence criterion   -1: do not decay  >0,<1: exponential base
+IDECAY_GRAD = 2                # Decay policy of gradient break condition   0: no decay  1: exponential decay  2: step down
+SCDECAY_GRAD = 0.9             # Exponetial base of decayed gradient break condition (IDECAY_GRAD = 1)
+SCGRADB = 0.1                  # Lower bound of exponetially decayed gradient break condition
+NGRAD = 2                      # Number of "steps" the gradient break condition curve includes (IDECAY_GRAD = 2)
+NGRAD_STEP = 200 400           # Indices in the outer loop where the gradient break condition discontinuously decay
+NGRAD_VALUE = 1.7 -1 \         # SCCONVB_GRAD for corresponding "steps"
+              1.5 -1 
+
+SCDECAY = -1                   # Exponential decay of convergence criterion   -1: no decay  >0,<1: exponential base
 SCDIFFB = 1E-7                 # Lower bound of criterion decay, not gonna work if SCDECAY = -1  
 SCCONVB = -1                   # Break condition for Lagragian coefficients difference between two inner steps   -1: this condition is off
 INISC = 0.01                   # Initial trial step size
