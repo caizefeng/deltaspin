@@ -33,7 +33,7 @@ SIGMA = 0.2
 # \int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(|\mathbf{r}|) d\mathbf{r}
 
 ISYM = -1
-RWIGS = 1.164                  # Better to be determined from Bader analysis
+RWIGS = 1.286 0.820            # Better to be determined from Bader analysis
 GGA_COMPAT = .FALSE.
 LASPH = .TRUE.
 ISPIN = 2
