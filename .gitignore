@@ -28,7 +28,8 @@ err
 out
 timing.log
 log-*
+slurm-*
 
-/test/*
-!/test/metal/Fe
-!/test/insulator/NiO
+/examples/*
+!/examples/metal/Fe
+!/examples/insulator/NiO
