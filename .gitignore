@@ -30,6 +30,3 @@ timing.log
 log-*
 slurm-*
 
-/examples/*
-!/examples/metal/Fe
-!/examples/insulator/NiO
