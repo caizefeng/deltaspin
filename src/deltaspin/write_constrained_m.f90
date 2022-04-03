@@ -72,6 +72,12 @@ SUBROUTINE WRITE_CONSTRAINED_M(IU, LONG)
             WRITE (IU, '(I3,3F18.9,3F18.9)') NI, MW(1:3, NI), MW_(1:3, NI)
         END DO
 
+        WRITE (IU, *) 'ion                     M_current'
+
+        DO NI = 1, NIONS
+            WRITE (IU, '(I3,3F18.9)') NI, M_TOT(1:3, NI)
+        END DO
+
         IF (SCTYPE_CURRENT == 0) THEN
             WRITE (IU, *) 'lambda                                     '
             DO NI = 1, NIONS
