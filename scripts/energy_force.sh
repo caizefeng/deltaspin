@@ -1,10 +1,11 @@
+# Only for "SCTYPE = 1" case
+alias grep="grep --text"
 E0=$(grep '  without' OUTCAR | awk '{print $7}')
-Ep=$(grep 'E_p' OSZICAR | tail -1 | awk '{print $3}')
 N=$(sed -n '7p' POSCAR | awk '{for(i=1;i<=NF;i++)a+=$i; print a}')
 echo "RMS:"
 grep "RMS" OSZICAR | tail -1 | awk '{print $3}'
 echo "Energy:"
-echo "$E0 $Ep" | awk '{printf"%.8f\n", ($1-$2)}'
+echo "$E0"
 echo "Cartesian Coordinates:"
 grep "position of ions in cartesian coordinates" OUTCAR -A $N | tail -$N | awk '{print $1, $2, $3}' | awk '{b[NR]=$0; }END{for(i=1;i<=NR;i++) if(i==NR){printf b[i] "\n"}else{printf "%s ",b[i]}}'
 echo "Magnetization:"
