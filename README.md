@@ -8,7 +8,10 @@ Please cite
 Cai, Z., & Xu, B. (2022). First-principles Study of Spin Fluctuations Using Self-adaptive Spin-constrained DFT.
 https://doi.org/10.48550/arXiv.2208.04551
 
-## Note
+## SOURCE CODE ACCESS
+Please send an email to bxu@gscaep.ac.cn asking for the source code.
+
+### Note
 When using this project, other than following the original routine for compiling VASP, please make sure you also
 1. Clone the whole repo, not just the `deltaspin` directory. 
 2. Use Intel toolchain >= 2019 / oneAPI >= 2020.
