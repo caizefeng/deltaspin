@@ -1,6 +1,0 @@
-o) Noncollinear MBJ gives slightly different energies that the collinear version:
-   Stemming from the one-center terms (probably caused by RAD_MAG_DIRECTION)
-
-o) revTPSS: noncollinear still under construction, missing some stuff for the one-center terms
-
-o) revTPSS: forces should be checked
