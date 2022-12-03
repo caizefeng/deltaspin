@@ -15,3 +15,6 @@ Please send an email to bxu@gscaep.ac.cn asking for the source code.
 When using this project, other than following the original routine for compiling VASP, please make sure you also
 1. Clone the whole repo, not just the `deltaspin` directory. 
 2. Use Intel toolchain >= 2019 / oneAPI >= 2020.
+
+### Getting Started
+[DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/10146139/DeltaSpin_manual.pdf)
