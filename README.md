@@ -17,4 +17,4 @@ When using this project, other than following the original routine for compiling
 2. Use Intel toolchain >= 2019 / oneAPI >= 2020.
 
 ### Getting Started
-[DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/10146139/DeltaSpin_manual.pdf)
+Download [DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/10146139/DeltaSpin_manual.pdf).
