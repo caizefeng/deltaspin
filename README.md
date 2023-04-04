@@ -16,7 +16,7 @@ System requirements, including all software dependencies and operating systems, 
 
 Other than following the original routine for compiling `vasp_ncl`, which may take several minutes, please make sure you also
 1. Clone the whole repo, not just the `deltaspin` directory. 
-2. Use **Intel toolchain >= 2019 / oneAPI >= 2020**.
+2. Use **Intel toolchain >= 2019 / 2020 <= oneAPI <= 2022**.
 
 ### Getting Started
 1. Change your working directory to `examples/metal/Fe`, simply run the binary `bin/vasp_ncl`, or submit it to your own cluster like a normal VASP task.
@@ -24,5 +24,6 @@ Other than following the original routine for compiling `vasp_ncl`, which may ta
 3. Eventually, the obtained magnetic moments `MW_current` in the output `OSZICAR` should equal to the value `M_CONSTR` you set in the input `INCAR`. All VASP outputs, such as the total energy and electronic structure, are for the obtained constrained state.
 
 ### More Instructions
-Please download the manual [DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/10611430/DeltaSpin_manual.pdf).
+Please download the manual [DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/11144318/DeltaSpin_Manual.2.pdf).
+
 
