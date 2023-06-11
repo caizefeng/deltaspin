@@ -27,4 +27,5 @@ In addition to following the original routine for compiling `vasp_ncl`, which ma
 ### More Instructions
 Please download the manual [DeltaSpin_manual.pdf](https://github.com/caizefeng/DeltaSpin/files/11144318/DeltaSpin_Manual.2.pdf) for additional information.
 
-
+### Disclaimer
+VASP is a proprietary software, ensure that you possess an appropriate license to use it.
