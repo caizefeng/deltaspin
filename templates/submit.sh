@@ -6,7 +6,7 @@ ulimit -s unlimited
 echo "the start time is:"   $(date)  >> timing.log
 DATE1=$(date +%s)
 
-mpirun -np 32 <path-to-deltaspin>/bin/vasp_ncl
+mpirun -np 32 <path-to-deltaspin>/bin/vasp_deltaspin
 
 DATE2=$(date +%s)
 echo "the end time is:"   $(date)   >> timing.log

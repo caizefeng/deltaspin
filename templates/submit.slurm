@@ -16,7 +16,7 @@ DATE1=$(date +%s)
 
 unset I_MPI_PMI_LIBRARY 
 export I_MPI_JOB_RESPECT_PROCESS_PLACEMENT=0
-mpirun -np 56 <path-to-deltaspin>/bin/vasp_ncl
+mpirun -np 56 <path-to-deltaspin>/bin/vasp_deltaspin
 
 DATE2=$(date +%s)
 echo "the end time is:"   $(date)   >> timing.log

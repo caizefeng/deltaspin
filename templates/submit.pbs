@@ -17,7 +17,7 @@ df -Th
 cat INCAR
 ulimit -s unlimited
 
-mpirun -n 32 <path-to-deltaspin>/bin/vasp_ncl
+mpirun -n 32 <path-to-deltaspin>/bin/vasp_deltaspin
 
 DATE2=$(date +%s)
 echo "the end   time is:"   $(date)   >> timing.log

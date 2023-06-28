@@ -13,7 +13,6 @@ NPAR  = 4
 VOSKOWN = 1
 LWAVE = .FALSE.
 LCHARG = .FALSE.
-LAECHG = .FALSE.
 NELMIN = 10
 NELM = 500
 
@@ -30,14 +29,18 @@ SIGMA = 0.2
 
 #Magnetism
 # The DEFINITION of atomic spins which are constrained (M_CONSTR in INCAR, MW in constrmag.F/OSZICAR):
-# \vec{M}_{I}=
-# \int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(|\mathbf{r}|) d\mathbf{r}
+# \vec{M}_{I} =
+# \int_{\Omega_{I}} \vec{m}(\mathbf{r}) F_{I}(\mathbf{r}) d\mathbf{r}
 
+#External magneitc field (Zeeman field)
+Bfield = 0 0 0                 # External field in Cartesian coordinate (X,Y,Z), The unit is Tesla.
+
+#Non-collinear
 ISYM = -1
-RWIGS = 1.286 0.820            # Better to be determined from Bader analysis
-GGA_COMPAT = .FALSE.
-LASPH = .TRUE.
-ISPIN = 2
+RWIGS = 1.286 0.820            # Wigner-Seitz radius (in angstrom) for each atom type in the system.
+GGA_COMPAT = .FALSE.           # Restore the full lattice symmetry for gradient corrected functionals. Recommended.
+LASPH = .TRUE.                 # Non-spherical contribution to the gradient of the density. Recommended.
+ISPIN = 2                      # Does not matter in non-collinear calculation.
 LNONCOLLINEAR = .TRUE.
 LSORBIT  = .TRUE.
 
@@ -48,13 +51,13 @@ M_CONSTR = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.
 SCTYPE = 1                     # Type of SASC calculation   0: noSASC  1: SASC(L)  2: SASC(Q)  3: SASC(QL)
 
 #SASC(L)
-IDECOSC = 0                    # Whether Lagragian coefficients are coupled   0: coupled  1: decoupled between atoms  2: decoupled between every Cartesian component
-LAMBDA   = 12*0                # Initial Lagragian coefficients for SASC(L), when SCTYPE = 0, it has to be a scalar.
+IDECOSC = 0                    # Whether Lagrangian coefficients are coupled   0: coupled  1: decoupled between atoms  2: decoupled between every Cartesian component
+LAMBDA   = 12*0                # Initial Lagrangian coefficients for SASC(L), when SCTYPE = 0, it has to be a scalar.
 CONSTRL  = 6*1 6*0             # Whether the component is constrained or not   0: not constrained  1: constrained
 NSC = 100                      # Maximum number of steps for each inner optimization
 NSCMIN = 2                     # Minimum number of steps for each inner optimization
 SCDIFF = 1E-8                  # Convergence criterion of iteration (RMS)
-SCCONVB_GRAD = 0.5 -1          # Break condition for local gradients of spins w.r.t. Lagragian coefficients (local field)   -1: off for the element
+SCCONVB_GRAD = 0.5 -1          # Break condition for local gradients of spins w.r.t. Lagrangian coefficients (local field)   -1: off for the element
 
 IDECAY_GRAD = 0                # Decay policy of gradient break condition   0: no decay  1: exponential decay  2: step down
 SCDECAY_GRAD = 0.9             # Exponetial base of decayed gradient break condition (IDECAY_GRAD = 1)
@@ -66,7 +69,7 @@ NGRAD_VALUE = 1.7 -1 \         # SCCONVB_GRAD for corresponding "steps"
 
 SCDECAY = -1                   # Exponential decay of convergence criterion   -1: no decay  >0,<1: exponential base
 SCDIFFB = 1E-7                 # Lower bound of criterion decay, not gonna work if SCDECAY = -1  
-SCCONVB = -1                   # Break condition for Lagragian coefficients difference between two inner steps   -1: this condition is off
+SCCONVB = -1                   # Break condition for Lagrangian coefficients difference between two inner steps   -1: this condition is off
 INISC = 0.01                   # Initial trial step size
 SCCUT = 3                      # Restriction of step size
 NELMSCI = 1                    # Number of electronic steps BEFORE SASC(L)
@@ -77,7 +80,7 @@ LCUTSC_TRIAL = .TRUE.          # Whether trial step size is updated acoording to
 LDESC = .FALSE.                # Debug mode   TRUE: on  FALSE: off
 
 #SASC(Q)
-LAMBDA_Q   = 10 10 10 10 10 10 # Initial Lagragian coefficients for SASC(Q)
+LAMBDA_Q   = 10 10 10 10 10 10 # Initial Lagrangian coefficients for SASC(Q)
 CONSTRL_Q  = 1 1 1 1 1 1       # Whether the component is constrained or not   0: not constrained  1: constrained
 NSC_Q = 500                    # Maximum number of steps for SASC(Q) iteration
 SCDIFF_Q = 3E-4                # Convergence criterion of iteration (+Inf-Norm)
@@ -85,7 +88,7 @@ EDIFF_Q = 1E-6                 # Global break condition (EDIFF) for SASC(Q)
 INISC_Q = 0.1                  # Initial trial step size
 LDESC_Q = .FALSE.              # Debug mode   TRUE: on  FALSE: off
 
-#Orbital mom.
+#Orbital moments
 #LORBMOM = .TRUE.
 
 #Mixer
