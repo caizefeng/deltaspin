@@ -64,7 +64,7 @@ The system requirements, including all software dependencies and supported opera
       ```
 
 ## More Instructions
-For additional information, please download the manual [DeltaSpin_manual.pdf](doc/DeltaSpin_Manual.pdf).
+For additional information, please download the manual [DeltaSpin_Manual.pdf](doc/DeltaSpin_Manual.pdf).
 
 ## Disclaimer
 VASP is a proprietary software. Ensure that you possess an appropriate license to use it.
