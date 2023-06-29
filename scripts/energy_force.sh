@@ -20,5 +20,6 @@ echo "Virial: (kB)"
 read v_0 v_1 v_2 v_3 v_4 v_5 <<< $(grep "in kB" OUTCAR | awk '{print $3,$4,$5,$6,$7,$8,$9}')
 echo "$v_0 $v_3 $v_5 $v_3 $v_1 $v_4 $v_5 $v_4 $v_2"
 echo "Time Cost:"
-grep 'TIME COST' timing.log | tail -1 | awk '{print $3, $4, $5}' 
+time_cost_sec=$(grep Elapsed OUTCAR | awk '{print $4}' | awk '{printf("%.0f", $1)}')
+printf "%d DAYS %02d:%02d:%02d" $((time_cost_sec/86400)) $(((time_cost_sec/3600)%24)) $(((time_cost_sec/60)%60)) $(($time_cost_sec%60))
 echo ""

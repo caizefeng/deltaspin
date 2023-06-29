@@ -60,7 +60,7 @@ The system requirements, including all software dependencies and supported opera
 
 5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to inspect the critical properties of the achieved constrained state, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
       ```shell
-      sh ../../../scripts/energy_force.sh
+      bash ../../../scripts/energy_force.sh
       ```
 
 ## More Instructions
