@@ -2,7 +2,7 @@
 
 ![version](https://img.shields.io/badge/version-1.0.1-blue)
 
-DeltaSpin is a self-adaptive spin-constraining method based on Constrained Density Functional Theory (cDFT). It operates as an extension to the [Vienna Ab-initio Simulation Package (VASP)](https://www.vasp.at/).
+DeltaSpin is a **self-adaptive spin-constraining method** based on Constrained Density Functional Theory (cDFT). It operates as an extension to the [Vienna Ab-initio Simulation Package (VASP)](https://www.vasp.at/).
 
 ## How to cite
 
@@ -63,7 +63,7 @@ The system requirements, including all software dependencies and supported opera
     ```
     All VASP outputs, such as the total energy and electronic structure, correspond to the achieved constrained state.
 
-5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to **inspect the critical properties** of the achieved constrained state, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
+5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to **inspect the critical properties of the achieved constrained state**, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
       ```shell
       bash ../../../scripts/energy_force.sh
       ```
