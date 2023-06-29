@@ -48,17 +48,22 @@ The system requirements, including all software dependencies and supported opera
     ulimit -s unlimited
     ```
 
-2. Change your working directory to `examples/metal/Fe`, and simply execute the binary `bin/vasp_ncl`, or submit it to your own cluster like a regular VASP task.
+2. Change your working directory to `examples/metal/Fe`, and simply **execute the binary `bin/vasp_deltaspin`**, or submit it to your own cluster like a **regular VASP task**.
     ```shell
     cd examples/metal/Fe
     mpirun -np 56 ../../../bin/vasp_deltaspin
     ```
 
-3. Allow the calculation to finish. The time it takes can vary based on your system specifications. For reference, it takes approximately 20 minutes on a 56-thread compute node powered by two Intel Xeon Gold 6258R CPUs.
+3. **Allow the calculation to finish**. The time it takes can vary based on your system specifications. For reference, it takes approximately 20 minutes on a 56-thread compute node powered by two Intel Xeon Gold 6258R CPUs.
 
-4. After the calculation is complete, the obtained magnetic moments `MW_current` in the output `OSZICAR` should match the value `M_CONSTR` set in the input `INCAR`. All VASP outputs, such as the total energy and electronic structure, correspond to the achieved constrained state.
+4. After the calculation is complete, the obtained magnetic moments **`MW_current` in the output `OSZICAR` should match the value `M_CONSTR`** set in the input `INCAR`. 
+    ```shell
+    grep "M_CONSTR = " INCAR
+    grep "MW_current" OSZICAR -A 2 | tail -2 | awk '{print$2,$3,$4}'
+    ```
+    All VASP outputs, such as the total energy and electronic structure, correspond to the achieved constrained state.
 
-5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to inspect the critical properties of the achieved constrained state, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
+5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to **inspect the critical properties** of the achieved constrained state, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
       ```shell
       bash ../../../scripts/energy_force.sh
       ```
