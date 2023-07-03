@@ -16,5 +16,5 @@ printf "TIME COST: %d DAYS %02d:%02d:%02d" \
 $((diff/86400)) $(((diff/3600)%24)) $(((diff/60)%60)) $(($diff %60)) >> timing.log
 echo -e "\n\n" >> timing.log
 
-sh <path-to-deltaspin>/scripts/energy_force.sh
+bash <path-to-deltaspin>/scripts/energy_force.sh
 
