@@ -5,9 +5,7 @@
 /bin/*
 /build/*
 !.gitkeep
-/sync.sh
-
-/makefile.include
+/dev
 
 CHG
 CHGCAR
