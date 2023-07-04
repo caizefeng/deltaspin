@@ -2,7 +2,7 @@
 
 ![version](https://img.shields.io/badge/version-1.0.1-blue)
 
-DeltaSpin is a **self-adaptive spin-constraining method** based on Constrained Density Functional Theory (cDFT). It operates as an extension to the [Vienna Ab-initio Simulation Package (VASP)](https://www.vasp.at/).
+DeltaSpin is a **self-adaptive spin-constraining method** based on constrained Density Functional Theory (cDFT). It operates as an extension to the [Vienna Ab-initio Simulation Package (VASP)](https://www.vasp.at/).
 
 ## How to cite
 
@@ -43,33 +43,44 @@ The system requirements, including all software dependencies and supported opera
 
 ## Getting Started
 
-1. Configure the stack size to unlimited. This is necessary because VASP uses numerous stack-based variables and arrays.
+1. **Inspect your system configurations**, such as Intel runtime libraries and system stack size. Configure the stack size to unlimited if it hasn't been configured as such already. This is necessary because VASP uses numerous stack-based variables and arrays.
     ```shell
     ulimit -s unlimited
     ```
 
-2. Change your working directory to `examples/metal/Fe`, and simply **execute the binary `bin/vasp_deltaspin`**, or submit it to your own cluster like a **regular VASP task**.
+2. **Change your working directory** to `examples/metal/NiO`.
     ```shell
-    cd examples/metal/Fe
+    cd examples/metal/NiO
+    ```
+
+3. **Review the INCAR file**. Pay particular attention to the following tags and their respective meanings.
+    ```
+    M_CONSTR = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
+    SCYTPE = 1
+    CONSTRL  = 6*1 6*0
+    ```
+
+4. **Execute the binary `bin/vasp_deltaspin`**, or submit it to your cluster as you would **a regular VASP task**.
+    ```shell
     mpirun -np 56 ../../../bin/vasp_deltaspin
     ```
 
-3. **Allow the calculation to finish**. The time it takes can vary based on your system specifications. For reference, it takes approximately 20 minutes on a 56-thread compute node powered by two Intel Xeon Gold 6258R CPUs.
+5. **Wait for the calculation to finish**. The time this takes can vary based on your system specifications. For reference, it takes approximately 1 hour and 7 minutes on a 56-thread compute node powered by two Intel Xeon Gold 6258R CPUs.
 
-4. After the calculation is complete, the obtained magnetic moments **`MW_current` in the output `OSZICAR` should match the value `M_CONSTR`** set in the input `INCAR`. 
+6. After the calculation is complete, the obtained magnetic moments, **`MW_current` in the output `OSZICAR`, should match the value `M_CONSTR` set in the `INCAR` input**. 
     ```shell
     grep "M_CONSTR = " INCAR
     grep "MW_current" OSZICAR -A 2 | tail -2 | awk '{print$2,$3,$4}'
     ```
     All VASP outputs, such as the total energy and electronic structure, correspond to the achieved constrained state.
 
-5. (Optional) For convenience, you can utilize the provided `energy_force.sh` script to **inspect the critical properties of the achieved constrained state**, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
+7. (Optional) For convenience, you can use the provided `energy_force.sh` script to **examine the critical properties of the achieved constrained state**, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
       ```shell
       bash ../../../scripts/energy_force.sh
       ```
 
 ## More Instructions
-For additional information, please download the manual [DeltaSpin_Manual.pdf](doc/DeltaSpin_Manual.pdf).
+For additional information, please download the manual [DeltaSpin_Manual.pdf](docs/DeltaSpin_Manual.pdf).
 
 ## Disclaimer
 VASP is a proprietary software. Ensure that you possess an appropriate license to use it.

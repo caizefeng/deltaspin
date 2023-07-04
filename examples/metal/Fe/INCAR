@@ -51,7 +51,7 @@ M_CONSTR = 0.5054 0.5632 1.3516 0.3900 0.0528 1.4982
 SCTYPE = 1                     # Type of SASC calculation   0: noSASC  1: SASC(L)  2: SASC(Q)  3: SASC(QL)
 
 #SASC(L)
-IDECOSC = 0                    # Whether Lagrangian coefficients are coupled   0: coupled  1: decoupled between atoms  2: decoupled between every Cartesian component
+IDECOSC = 0                    # Whether Lagrangian coefficients are coupled   0: coupled  1: decoupled between atoms (deprecated)  2: decoupled between every Cartesian component (deprecated)
 LAMBDA   = 6*0                 # Initial Lagrangian coefficients for SASC(L), when SCTYPE = 0, it has to be a scalar.
 CONSTRL  = 6*1                 # Whether the component is constrained or not   0: not constrained  1: constrained
 NSC = 100                      # Maximum number of steps for each inner optimization
