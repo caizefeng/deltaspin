@@ -53,7 +53,7 @@ The system requirements, including all software dependencies and supported opera
     cd examples/metal/NiO
     ```
 
-3. **Review the INCAR file**. Pay particular attention to the following tags and their respective meanings.
+3. **Review the INCAR file**. Pay particular attention to the following tags and their respective meanings. As a reference, the ground-state magnetic configuration for the provided NiO example is `-0.424907764 1.024101942 0.627479909 0.424903960 -1.024103888 -0.627479400`.
     ```
     M_CONSTR = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
     SCYTPE = 1
@@ -74,7 +74,7 @@ The system requirements, including all software dependencies and supported opera
     ```
     All VASP outputs, such as the total energy and electronic structure, correspond to the achieved constrained state.
 
-7. (Optional) For convenience, you can use the provided `energy_force.sh` script to **examine the critical properties of the achieved constrained state**, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
+7. (Optional) For convenience, you can use the provided `energy_force.sh` script to **inspect the critical properties of the achieved constrained state**, including the magnetic moments and magnetic forces (also known as magnetic effective fields).
       ```shell
       bash ../../../scripts/energy_force.sh
       ```
