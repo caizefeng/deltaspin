@@ -16,8 +16,8 @@ echo "Atomic Force: (eV/A)"
 grep 'TOTAL-FORCE' OUTCAR -A $(($N + 1)) | tail -$N | awk '{print $4, $5, $6}' | awk '{b[NR]=$0; }END{for(i=1;i<=NR;i++) if(i==NR){printf b[i] "\n"}else{printf "%s ",b[i]}}'
 echo "Magnetic Force: (eV/muB)"
 grep 'Magnetic Force' OSZICAR -A $N | tail -$N | awk '{print $5, $6, $7}' | awk '{b[NR]=$0; }END{for(i=1;i<=NR;i++) if(i==NR){printf b[i] "\n"}else{printf "%s ",b[i]}}'
-echo "Virial: (kB)"
-read v_0 v_1 v_2 v_3 v_4 v_5 <<< $(grep "in kB" OUTCAR | awk '{print $3,$4,$5,$6,$7,$8,$9}')
+echo "Virial: (eV)"
+read v_0 v_1 v_2 v_3 v_4 v_5 <<< $(grep "Total" OUTCAR | grep -v "CPU" | awk '{print $2,$3,$4,$5,$6,$7}')
 echo "$v_0 $v_3 $v_5 $v_3 $v_1 $v_4 $v_5 $v_4 $v_2"
 echo "Time Cost:"
 time_cost_sec=$(grep Elapsed OUTCAR | awk '{print $4}' | awk '{printf("%.0f", $1)}')

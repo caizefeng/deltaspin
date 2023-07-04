@@ -1,6 +1,6 @@
 # DeltaSpin
 
-![version](https://img.shields.io/badge/version-1.0.1-blue)
+![version](https://img.shields.io/badge/version-1.0.2-blue)
 
 DeltaSpin is a **self-adaptive spin-constraining method** based on constrained Density Functional Theory (cDFT). It operates as an extension to the [Vienna Ab-initio Simulation Package (VASP)](https://www.vasp.at/).
 
