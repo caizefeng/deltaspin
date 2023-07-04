@@ -43,26 +43,28 @@ The system requirements, including all software dependencies and supported opera
 
 ## Getting Started
 
+For the following commands, replace the values within the angle brackets (`< >`) with relevant values for your system.
+
 1. **Inspect your system configurations**, such as Intel runtime libraries and system stack size. Configure the stack size to unlimited if it hasn't been configured as such already. This is necessary because VASP uses numerous stack-based variables and arrays.
     ```shell
     ulimit -s unlimited
     ```
 
-2. **Change your working directory** to `<repository root>/examples/insulator/NiO`.
+2. **Change your working directory** to `examples/insulator/NiO`.
     ```shell
-    cd examples/insulator/NiO
+    cd <repository root>/examples/insulator/NiO
     ```
 
 3. **Review the INCAR file**. Pay particular attention to the following tags and their respective meanings. As a reference, the ground-state magnetic configuration for the provided NiO example is `-0.424907764 1.024101942 0.627479909 0.424903960 -1.024103888 -0.627479400`.
     ```
     M_CONSTR = 0.75914 0.16146 -1.00688 -0.67954 -0.91284 0.56668 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 
-    SCYTPE = 1
+    SCTYPE = 1
     CONSTRL  = 6*1 6*0
     ```
 
 4. **Execute the binary `bin/vasp_deltaspin`**, or submit it to your cluster as you would **a regular VASP task**.
     ```shell
-    mpirun -np 56 ../../../bin/vasp_deltaspin
+    mpirun -np <number of threads> ../../../bin/vasp_deltaspin
     ```
 
 5. **Wait for the calculation to finish**. The time this takes can vary based on your system specifications. For reference, it takes approximately 1 hour and 7 minutes on a 56-thread compute node powered by two Intel Xeon Gold 6258R CPUs.
