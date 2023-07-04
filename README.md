@@ -50,7 +50,7 @@ The system requirements, including all software dependencies and supported opera
 
 2. **Change your working directory** to `examples/metal/NiO`.
     ```shell
-    cd examples/metal/NiO
+    cd examples/insulator/NiO
     ```
 
 3. **Review the INCAR file**. Pay particular attention to the following tags and their respective meanings. As a reference, the ground-state magnetic configuration for the provided NiO example is `-0.424907764 1.024101942 0.627479909 0.424903960 -1.024103888 -0.627479400`.
