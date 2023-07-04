@@ -48,7 +48,7 @@ The system requirements, including all software dependencies and supported opera
     ulimit -s unlimited
     ```
 
-2. **Change your working directory** to `examples/metal/NiO`.
+2. **Change your working directory** to `<repository root>/examples/insulator/NiO`.
     ```shell
     cd examples/insulator/NiO
     ```
