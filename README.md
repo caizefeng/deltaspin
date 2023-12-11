@@ -7,11 +7,15 @@ DeltaSpin is a **self-adaptive spin-constraining method** based on constrained D
 ## How to cite
 
 ```
-@article{cai2022first,
-  title={First-principles Study of Non-Collinear Spin Fluctuations Using Self-adaptive Spin-constrained Method},
+@article{cai2023self,
+  title={A self-adaptive first-principles approach for magnetic excited states},
   author={Cai, Zefeng and Wang, Ke and Xu, Yong and Wei, Su-Huai and Xu, Ben},
-  journal={arXiv preprint arXiv:2208.04551},
-  year={2022}
+  journal={Quantum Frontiers},
+  volume={2},
+  number={1},
+  pages={21},
+  year={2023},
+  publisher={Springer}
 }
 ```
 
